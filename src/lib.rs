@@ -27,6 +27,13 @@ mod tests {
     fn file1_run() {
         let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
-        let result = crate::fit::read(&mut reader);
+        let fit = crate::fit::read(&mut reader);
+
+        println!("Header: ");
+        for byte in fit.header.header_buf.iter() {
+            print!("{:#x} ", byte);
+        }
+        println!("");
+        println!("Data Size: {}", fit.header.data_size());
     }
 }

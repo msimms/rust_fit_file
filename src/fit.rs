@@ -51,6 +51,14 @@ impl FitHeader {
     pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) {
         reader.read_exact(&mut self.header_buf);
     }
+
+    pub fn data_size(&self) -> u32 {
+        let mut data_size = self.header_buf[HEADER_DATA_SIZE_LSB_OFFSET] as u32;
+        data_size = data_size | (self.header_buf[HEADER_DATA_SIZE_1_OFFSET] as u32) << 8;
+        data_size = data_size | (self.header_buf[HEADER_DATA_SIZE_2_OFFSET] as u32) << 16;
+        data_size = data_size | (self.header_buf[HEADER_DATA_SIZE_MSB_OFFSET] as u32) << 24;
+        data_size
+    }
 }
 
 #[derive(Debug, Default)]
@@ -70,8 +78,8 @@ impl FitRecord {
 
 #[derive(Debug, Default)]
 pub struct Fit {
-    header: FitHeader,
-    records: Vec<FitRecord>
+    pub header: FitHeader,
+    pub records: Vec<FitRecord>
 }
 
 impl Fit {
