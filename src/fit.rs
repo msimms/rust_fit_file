@@ -37,6 +37,10 @@ const HEADER_DATA_TYPE_3_OFFSET: usize = 10;
 const HEADER_CRC_1_OFFSET: usize = 11;
 const HEADER_CRC_2_OFFSET: usize = 12;
 
+const RECORD_NORMAL_HDR: u8 = 0x40;
+const RECORD_NORMAL_HDR_MSG_TYPE: u8 = 0x20;
+const RECORD_NORMAL_HDR_MSG_TYPE_SPECIFIC: u8 = 0x10;
+
 #[derive(Debug, Default)]
 pub struct FitHeader {
     pub header_buf: [u8; 14]
@@ -63,16 +67,60 @@ impl FitHeader {
 
 #[derive(Debug, Default)]
 pub struct FitRecord {
-
+    pub header_byte: [u8; 1]
 }
 
 impl FitRecord {
     pub fn new() -> Self {
-        let rec = FitRecord{};
+        let rec = FitRecord{ header_byte: [0u8; 1] };
         rec
     }
 
     pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) {
+        // The first byte is a bit field that tells us more about the record.
+        reader.read_exact(&mut self.header_byte);
+
+        // Normal header or compressed timestamp header?
+        if self.header_byte[0] & RECORD_NORMAL_HDR == 1 {
+
+            // Data or definition message?
+            if self.header_byte[0] & RECORD_NORMAL_HDR_MSG_TYPE == 1 {
+
+                // Definition message (5 bytes).
+                // 0: Reserved
+                // 1: Architecture
+                // 2-3: Global Message Number
+                // 4: Number of Fields
+                let mut definition_header: [u8; 5] = [0; 5];
+                reader.read_exact(&mut definition_header);
+
+                // Read each field.
+                for i in 0..definition_header[4] {
+
+                    // Field definition (3 bytes).
+                    let mut field_definition: [u8; 3] = [0; 3];
+                    reader.read_exact(&mut definition_header);
+                }
+
+                // Read the number of developer fields (1 byte).
+                let mut num_dev_fields: [u8; 1] = [0; 1];
+                reader.read_exact(&mut num_dev_fields);
+
+                // Read each developer field.
+                for i in 0..num_dev_fields[0] {
+
+                    // Field definition (3 bytes).
+                    let mut field_definition: [u8; 3] = [0; 3];
+                    reader.read_exact(&mut definition_header);
+                }
+            }
+            else {
+
+                // Data message.
+            }
+        }
+        else {
+        }
     }
 }
 
@@ -89,7 +137,14 @@ impl Fit {
     }
 
     pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) {
+        // Read the file header.
         self.header.read(reader);
+
+        // Make sure the header is valid.
+
+        // Read each record.
+        let mut record = FitRecord::new();
+        record.read(reader);
     }
 }
 
