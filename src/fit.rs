@@ -44,41 +44,56 @@ const RECORD_HDR_MSG_TYPE_SPECIFIC: u8 = 0x20;
 const RECORD_HDR_RESERVED: u8 = 0x10;
 const RECORD_HDR_LOCAL_MSG_TYPE: u8 = 0x0f;
 
+fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec<u8> >
+{
+    let mut buf = vec![];
+    let mut chunk = reader.take(bytes_to_read);
+    let n = chunk.read_to_end(&mut buf).expect("Didn't read enough");
+    Ok(buf)
+}
+
 #[derive(Debug, Default)]
 pub struct FitHeader {
-    pub header_buf: [u8; 14]
+    pub header: Vec<u8>,
+    pub header_buf2: [u8; 2]   // Additional information introduced with the 14 byte header
 }
 
 impl FitHeader {
     pub fn new() -> Self {
-        let header = FitHeader{ header_buf: [0u8; 14] };
+        let header = FitHeader{ header: Vec::new(), header_buf2: [0u8; 2] };
         header
     }
 
     pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
-        reader.read_exact(&mut self.header_buf)?;
+        self.header = read_n(reader, 12)?;
+
+        // Does this file use the newer, 14 byte header. 
+        if self.header[HEADER_FILE_SIZE_OFFSET] == 14 {
+            let mut additional_bytes = read_n(reader, 2)?;
+            self.header.append(&mut additional_bytes);
+        }
         Ok(())
     }
 
     pub fn validate(&self) -> bool {
-        let mut valid = self.header_buf[HEADER_DATA_TYPE_0_OFFSET] == '.' as u8;
-        valid = valid && self.header_buf[HEADER_DATA_TYPE_1_OFFSET] == 'F' as u8;
-        valid = valid && self.header_buf[HEADER_DATA_TYPE_2_OFFSET] == 'I' as u8;
-        valid = valid && self.header_buf[HEADER_DATA_TYPE_3_OFFSET] == 'T' as u8;
+        let mut valid  = self.header[HEADER_DATA_TYPE_0_OFFSET] == '.' as u8;
+        valid = valid && self.header[HEADER_DATA_TYPE_1_OFFSET] == 'F' as u8;
+        valid = valid && self.header[HEADER_DATA_TYPE_2_OFFSET] == 'I' as u8;
+        valid = valid && self.header[HEADER_DATA_TYPE_3_OFFSET] == 'T' as u8;
         valid
     }
 
     pub fn print(&self) {
-        for byte in self.header_buf.iter() {
+        for byte in self.header.iter() {
             print!("{:#04x} ", byte);
         }
     }
 
     pub fn data_size(&self) -> u32 {
-        let mut data_size = self.header_buf[HEADER_DATA_SIZE_LSB_OFFSET] as u32;
-        data_size = data_size | (self.header_buf[HEADER_DATA_SIZE_1_OFFSET] as u32) << 8;
-        data_size = data_size | (self.header_buf[HEADER_DATA_SIZE_2_OFFSET] as u32) << 16;
-        data_size = data_size | (self.header_buf[HEADER_DATA_SIZE_MSB_OFFSET] as u32) << 24;
+        let mut data_size = self.header[HEADER_DATA_SIZE_LSB_OFFSET] as u32;
+        data_size = data_size | (self.header[HEADER_DATA_SIZE_1_OFFSET] as u32) << 8;
+        data_size = data_size | (self.header[HEADER_DATA_SIZE_2_OFFSET] as u32) << 16;
+        data_size = data_size | (self.header[HEADER_DATA_SIZE_MSB_OFFSET] as u32) << 24;
         data_size
     }
 }
