@@ -94,14 +94,80 @@ impl FitRecord {
         rec
     }
 
-    pub fn read_local_msg_type0<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+    fn read_local_msg_type0<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
         // Next byte tells us the type of the local message.
         let mut msg_type: [u8; 1] = [0; 1];
         reader.read_exact(&mut msg_type)?;
 
         match msg_type[0] {
+            // activity file message
             4 => (),
+            // workout file message
+            5 => (),
+            // course file message
+            6 => (),
+            // record message
             _ => (),
+        }
+        Ok(())
+    }
+
+    fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+        // Definition message (5 bytes).
+        // 0: Reserved
+        // 1: Architecture
+        // 2-3: Global Message Number
+        // 4: Number of Fields
+        let mut definition_header: [u8; 5] = [0; 5];
+        reader.read_exact(&mut definition_header)?;
+
+        // Read each field.
+        for _i in 0..definition_header[4] {
+
+            // Field definition (3 bytes).
+            let field_definition: [u8; 3] = [0; 3];
+            reader.read_exact(&mut definition_header)?;
+        }
+
+        // Read the number of developer fields (1 byte).
+        let mut num_dev_fields: [u8; 1] = [0; 1];
+        reader.read_exact(&mut num_dev_fields)?;
+
+        // Read each developer field.
+        for _i in 0..num_dev_fields[0] {
+
+            // Field definition (3 bytes).
+            let field_definition: [u8; 3] = [0; 3];
+            reader.read_exact(&mut definition_header)?;
+        }
+        Ok(())
+    }
+
+    fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+        // Local message type.
+        let local_msg_type = self.header_byte[0] & RECORD_HDR_LOCAL_MSG_TYPE;
+
+        match local_msg_type {
+            0 => self.read_local_msg_type0(reader)?,
+            _ => (),
+        }
+        Ok(())
+    }
+
+    fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+        // Compressed Timestamp Header.
+        let time_offset = self.header_byte[0] & 0x0f;
+        Ok(())
+    }
+
+    fn read_normal_message<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+        // Data or definition message?
+        // A value of zero indicates a data message.
+        if self.header_byte[0] & RECORD_HDR_MSG_TYPE != 0 {
+            self.read_definition_message(reader)?;
+        }
+        else {
+            self.read_data_message(reader)?;
         }
         Ok(())
     }
@@ -113,54 +179,10 @@ impl FitRecord {
         // Normal header or compressed timestamp header?
         // A value of zero indicates a normal header.
         if self.header_byte[0] & RECORD_HDR_NORMAL != 0 {
-
-            // Compressed Timestamp Header.
-            let time_offset = self.header_byte[0] & 0x0f;
+            self.read_compressed_timestamp_message(reader)?;
         }
         else {
-
-            // Data or definition message?
-            // A value of zero indicates a data message.
-            if self.header_byte[0] & RECORD_HDR_MSG_TYPE != 0 {
-
-                // Definition message (5 bytes).
-                // 0: Reserved
-                // 1: Architecture
-                // 2-3: Global Message Number
-                // 4: Number of Fields
-                let mut definition_header: [u8; 5] = [0; 5];
-                reader.read_exact(&mut definition_header)?;
-
-                // Read each field.
-                for _i in 0..definition_header[4] {
-
-                    // Field definition (3 bytes).
-                    let field_definition: [u8; 3] = [0; 3];
-                    reader.read_exact(&mut definition_header)?;
-                }
-
-                // Read the number of developer fields (1 byte).
-                let mut num_dev_fields: [u8; 1] = [0; 1];
-                reader.read_exact(&mut num_dev_fields)?;
-
-                // Read each developer field.
-                for _i in 0..num_dev_fields[0] {
-
-                    // Field definition (3 bytes).
-                    let field_definition: [u8; 3] = [0; 3];
-                    reader.read_exact(&mut definition_header)?;
-                }
-            }
-            else {
-
-                // Local message type.
-                let local_msg_type = self.header_byte[0] & RECORD_HDR_LOCAL_MSG_TYPE;
-
-                match local_msg_type {
-                    0 => self.read_local_msg_type0(reader)?,
-                    _ => (),
-                }
-            }
+            self.read_normal_message(reader);
         }
 
         Ok(())
@@ -177,6 +199,9 @@ impl Fit {
     pub fn new() -> Self {
         let fit = Fit{ header: FitHeader::new(), records: Vec::new() };
         fit
+    }
+
+    fn check_crc(&self) {
     }
 
     pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
@@ -198,6 +223,7 @@ impl Fit {
             }
 
             // Read the CRC.
+            self.check_crc();
         }
 
         Ok(())
