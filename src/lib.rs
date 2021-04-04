@@ -30,9 +30,7 @@ mod tests {
         let fit = crate::fit::read(&mut reader);
 
         println!("Header: ");
-        for byte in fit.header.header_buf.iter() {
-            print!("{:#x} ", byte);
-        }
+        fit.header.print();
         println!("");
         println!("Data Size: {}", fit.header.data_size());
     }

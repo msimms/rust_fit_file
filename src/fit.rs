@@ -19,6 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use std::io::Result;
 use std::io::Read;
 use std::io::BufReader;
 
@@ -37,9 +38,10 @@ const HEADER_DATA_TYPE_3_OFFSET: usize = 10;
 const HEADER_CRC_1_OFFSET: usize = 11;
 const HEADER_CRC_2_OFFSET: usize = 12;
 
-const RECORD_NORMAL_HDR: u8 = 0x40;
-const RECORD_NORMAL_HDR_MSG_TYPE: u8 = 0x20;
-const RECORD_NORMAL_HDR_MSG_TYPE_SPECIFIC: u8 = 0x10;
+const RECORD_HDR_NORMAL: u8 = 0x80;
+const RECORD_HDR_MSG_TYPE: u8 = 0x40;
+const RECORD_HDR_MSG_TYPE_SPECIFIC: u8 = 0x20;
+const RECORD_HDR_RESERVED: u8 = 0x10;
 
 #[derive(Debug, Default)]
 pub struct FitHeader {
@@ -52,8 +54,15 @@ impl FitHeader {
         header
     }
 
-    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) {
-        reader.read_exact(&mut self.header_buf);
+    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+        reader.read_exact(&mut self.header_buf)?;
+        Ok(())
+    }
+
+    pub fn print(&self) {
+        for byte in self.header_buf.iter() {
+            print!("{:#04x} ", byte);
+        }
     }
 
     pub fn data_size(&self) -> u32 {
@@ -76,15 +85,15 @@ impl FitRecord {
         rec
     }
 
-    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) {
+    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
         // The first byte is a bit field that tells us more about the record.
-        reader.read_exact(&mut self.header_byte);
+        reader.read_exact(&mut self.header_byte)?;
 
         // Normal header or compressed timestamp header?
-        if self.header_byte[0] & RECORD_NORMAL_HDR == 1 {
+        if self.header_byte[0] & RECORD_HDR_NORMAL == 1 {
 
             // Data or definition message?
-            if self.header_byte[0] & RECORD_NORMAL_HDR_MSG_TYPE == 1 {
+            if self.header_byte[0] & RECORD_HDR_MSG_TYPE == 1 {
 
                 // Definition message (5 bytes).
                 // 0: Reserved
@@ -92,35 +101,40 @@ impl FitRecord {
                 // 2-3: Global Message Number
                 // 4: Number of Fields
                 let mut definition_header: [u8; 5] = [0; 5];
-                reader.read_exact(&mut definition_header);
+                reader.read_exact(&mut definition_header)?;
 
                 // Read each field.
                 for i in 0..definition_header[4] {
 
                     // Field definition (3 bytes).
                     let mut field_definition: [u8; 3] = [0; 3];
-                    reader.read_exact(&mut definition_header);
+                    reader.read_exact(&mut definition_header)?;
                 }
 
                 // Read the number of developer fields (1 byte).
                 let mut num_dev_fields: [u8; 1] = [0; 1];
-                reader.read_exact(&mut num_dev_fields);
+                reader.read_exact(&mut num_dev_fields)?;
 
                 // Read each developer field.
                 for i in 0..num_dev_fields[0] {
 
                     // Field definition (3 bytes).
                     let mut field_definition: [u8; 3] = [0; 3];
-                    reader.read_exact(&mut definition_header);
+                    reader.read_exact(&mut definition_header)?;
                 }
             }
             else {
 
-                // Data message.
+                // Data Message.
             }
         }
         else {
+
+            // Compressed Timestamp Header.
+            let time_offset = self.header_byte[0] & 0x0f;
         }
+
+        Ok(())
     }
 }
 
@@ -136,15 +150,26 @@ impl Fit {
         fit
     }
 
-    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) {
+    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
         // Read the file header.
-        self.header.read(reader);
+        self.header.read(reader)?;
 
         // Make sure the header is valid.
 
         // Read each record.
-        let mut record = FitRecord::new();
-        record.read(reader);
+        let mut done = false;
+        while !done {
+            let mut record = FitRecord::new();
+
+            match record.read(reader) {
+                Ok(i) => self.records.push(record),
+                Err(e) => done = true,
+            }
+        }
+
+        // Read the CRC.
+
+        Ok(())
     }
 }
 
