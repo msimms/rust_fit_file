@@ -31,17 +31,18 @@ const HEADER_DATA_SIZE_LSB_OFFSET: usize = 4;
 const HEADER_DATA_SIZE_1_OFFSET: usize = 5;
 const HEADER_DATA_SIZE_2_OFFSET: usize = 6;
 const HEADER_DATA_SIZE_MSB_OFFSET: usize = 7;
-const HEADER_DATA_TYPE_0_OFFSET: usize = 7;
-const HEADER_DATA_TYPE_1_OFFSET: usize = 8;
-const HEADER_DATA_TYPE_2_OFFSET: usize = 9;
-const HEADER_DATA_TYPE_3_OFFSET: usize = 10;
-const HEADER_CRC_1_OFFSET: usize = 11;
-const HEADER_CRC_2_OFFSET: usize = 12;
+const HEADER_DATA_TYPE_0_OFFSET: usize = 8;  // .
+const HEADER_DATA_TYPE_1_OFFSET: usize = 9;  // F
+const HEADER_DATA_TYPE_2_OFFSET: usize = 10;  // I
+const HEADER_DATA_TYPE_3_OFFSET: usize = 11; // T
+const HEADER_CRC_1_OFFSET: usize = 12;
+const HEADER_CRC_2_OFFSET: usize = 13;
 
 const RECORD_HDR_NORMAL: u8 = 0x80;
 const RECORD_HDR_MSG_TYPE: u8 = 0x40;
 const RECORD_HDR_MSG_TYPE_SPECIFIC: u8 = 0x20;
 const RECORD_HDR_RESERVED: u8 = 0x10;
+const RECORD_HDR_LOCAL_MSG_TYPE: u8 = 0x0f;
 
 #[derive(Debug, Default)]
 pub struct FitHeader {
@@ -57,6 +58,14 @@ impl FitHeader {
     pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
         reader.read_exact(&mut self.header_buf)?;
         Ok(())
+    }
+
+    pub fn validate(&self) -> bool {
+        let mut valid = self.header_buf[HEADER_DATA_TYPE_0_OFFSET] == '.' as u8;
+        valid = valid && self.header_buf[HEADER_DATA_TYPE_1_OFFSET] == 'F' as u8;
+        valid = valid && self.header_buf[HEADER_DATA_TYPE_2_OFFSET] == 'I' as u8;
+        valid = valid && self.header_buf[HEADER_DATA_TYPE_3_OFFSET] == 'T' as u8;
+        valid
     }
 
     pub fn print(&self) {
@@ -85,15 +94,34 @@ impl FitRecord {
         rec
     }
 
+    pub fn read_local_msg_type0<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+        // Next byte tells us the type of the local message.
+        let mut msg_type: [u8; 1] = [0; 1];
+        reader.read_exact(&mut msg_type)?;
+
+        match msg_type[0] {
+            4 => (),
+            _ => (),
+        }
+        Ok(())
+    }
+
     pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
         // The first byte is a bit field that tells us more about the record.
         reader.read_exact(&mut self.header_byte)?;
 
         // Normal header or compressed timestamp header?
-        if self.header_byte[0] & RECORD_HDR_NORMAL == 1 {
+        // A value of zero indicates a normal header.
+        if self.header_byte[0] & RECORD_HDR_NORMAL != 0 {
+
+            // Compressed Timestamp Header.
+            let time_offset = self.header_byte[0] & 0x0f;
+        }
+        else {
 
             // Data or definition message?
-            if self.header_byte[0] & RECORD_HDR_MSG_TYPE == 1 {
+            // A value of zero indicates a data message.
+            if self.header_byte[0] & RECORD_HDR_MSG_TYPE != 0 {
 
                 // Definition message (5 bytes).
                 // 0: Reserved
@@ -104,10 +132,10 @@ impl FitRecord {
                 reader.read_exact(&mut definition_header)?;
 
                 // Read each field.
-                for i in 0..definition_header[4] {
+                for _i in 0..definition_header[4] {
 
                     // Field definition (3 bytes).
-                    let mut field_definition: [u8; 3] = [0; 3];
+                    let field_definition: [u8; 3] = [0; 3];
                     reader.read_exact(&mut definition_header)?;
                 }
 
@@ -116,22 +144,23 @@ impl FitRecord {
                 reader.read_exact(&mut num_dev_fields)?;
 
                 // Read each developer field.
-                for i in 0..num_dev_fields[0] {
+                for _i in 0..num_dev_fields[0] {
 
                     // Field definition (3 bytes).
-                    let mut field_definition: [u8; 3] = [0; 3];
+                    let field_definition: [u8; 3] = [0; 3];
                     reader.read_exact(&mut definition_header)?;
                 }
             }
             else {
 
-                // Data Message.
-            }
-        }
-        else {
+                // Local message type.
+                let local_msg_type = self.header_byte[0] & RECORD_HDR_LOCAL_MSG_TYPE;
 
-            // Compressed Timestamp Header.
-            let time_offset = self.header_byte[0] & 0x0f;
+                match local_msg_type {
+                    0 => self.read_local_msg_type0(reader)?,
+                    _ => (),
+                }
+            }
         }
 
         Ok(())
@@ -155,19 +184,21 @@ impl Fit {
         self.header.read(reader)?;
 
         // Make sure the header is valid.
+        if self.header.validate() {
 
-        // Read each record.
-        let mut done = false;
-        while !done {
-            let mut record = FitRecord::new();
+            // Read each record.
+            let mut done = false;
+            while !done {
+                let mut record = FitRecord::new();
 
-            match record.read(reader) {
-                Ok(i) => self.records.push(record),
-                Err(e) => done = true,
+                match record.read(reader) {
+                    Ok(i) => self.records.push(record),
+                    Err(e) => done = true,
+                }
             }
-        }
 
-        // Read the CRC.
+            // Read the CRC.
+        }
 
         Ok(())
     }
