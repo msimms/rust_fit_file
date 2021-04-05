@@ -22,6 +22,7 @@
 use std::io::Result;
 use std::io::Read;
 use std::io::BufReader;
+use std::cmp::Ordering;
 
 const HEADER_FILE_SIZE_OFFSET: usize = 0;
 const HEADER_PROTOCOL_VERSION_OFFSET: usize = 1;
@@ -113,6 +114,26 @@ struct FieldDefinition {
     base_type: u8
 }
 
+impl Ord for FieldDefinition {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (self.field_def, &self.size, &self.base_type).cmp(&(other.field_def, &other.size, &other.base_type))
+    }
+}
+
+impl PartialOrd for FieldDefinition {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for FieldDefinition {
+    fn eq(&self, other: &Self) -> bool {
+        (self.field_def, &self.size) == (other.field_def, &other.size)
+    }
+}
+
+impl Eq for FieldDefinition { }
+
 #[derive(Debug, Default)]
 pub struct FitRecord {
     pub header_byte: [u8; 1]
@@ -135,6 +156,9 @@ impl FitRecord {
         let mut definition_header: [u8; 5] = [0; 5];
         reader.read_exact(&mut definition_header)?;
 
+        // Remove any old definitions.
+        definitions.clear();
+
         // Read each field.
         for _i in 0..definition_header[4] {
 
@@ -144,8 +168,16 @@ impl FitRecord {
 
             // Add the definition to the hash map.
             let field_def = FieldDefinition { field_def:field_def_bytes[0], size:field_def_bytes[1], base_type:field_def_bytes[2] };
-            definitions.push(field_def);
+
+            // Insert sorted.
+            match definitions.binary_search(&field_def) {
+                Ok(pos) => {} // element already in vector @ `pos` 
+                Err(pos) => definitions.insert(pos, field_def),
+            }
         }
+        //for field_def in definitions {
+        //    println!("{} {} {}", field_def.field_def, field_def.size, field_def.base_type);
+        //}
 
         // Read the number of developer fields (1 byte).
         let mut num_dev_fields: [u8; 1] = [0; 1];
@@ -171,6 +203,27 @@ impl FitRecord {
         // Read data for each message definition.
         for def in definitions {
             let data = read_n(reader, def.size as u64);
+
+            match def.base_type {
+                0x00 => (),
+                0x01 => (),
+                0x02 => (),
+                0x83 => (),
+                0x84 => (),
+                0x85 => (),
+                0x86 => (),
+                0x07 => (),
+                0x88 => (),
+                0x89 => (),
+                0x0A => (),
+                0x8B => (),
+                0x8C => (),
+                0x0D => (),
+                0x8E => (),
+                0x8F => (),
+                0x90 => (),
+                _ => ()
+            }
         }
 
         Ok(())
