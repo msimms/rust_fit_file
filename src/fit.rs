@@ -44,11 +44,13 @@ const RECORD_HDR_MSG_TYPE_SPECIFIC: u8 = 0x20;
 const RECORD_HDR_RESERVED: u8 = 0x10;
 const RECORD_HDR_LOCAL_MSG_TYPE: u8 = 0x0f;
 
+type FieldDefinitionMap = Vec<FieldDefinition>;
+
 fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec<u8> >
 {
     let mut buf = vec![];
     let mut chunk = reader.take(bytes_to_read);
-    let n = chunk.read_to_end(&mut buf).expect("Didn't read enough");
+    let _n = chunk.read_to_end(&mut buf).expect("Didn't read enough");
     Ok(buf)
 }
 
@@ -64,7 +66,10 @@ impl FitHeader {
         header
     }
 
+    /// Reads the FIT File Header from the buffer.
     pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+
+        // Reads first 12 bytes of the header (12 bytes is the minimum header size for a valid FIT file).
         self.header = read_n(reader, 12)?;
 
         // Does this file use the newer, 14 byte header. 
@@ -75,6 +80,7 @@ impl FitHeader {
         Ok(())
     }
 
+    /// Validates the FIT File Header. Call after calling read().
     pub fn validate(&self) -> bool {
         let mut valid  = self.header[HEADER_DATA_TYPE_0_OFFSET] == '.' as u8;
         valid = valid && self.header[HEADER_DATA_TYPE_1_OFFSET] == 'F' as u8;
@@ -83,12 +89,14 @@ impl FitHeader {
         valid
     }
 
+    /// Prints the raw bytes comprising the FIT File Header.
     pub fn print(&self) {
         for byte in self.header.iter() {
             print!("{:#04x} ", byte);
         }
     }
 
+    /// Calculates and returns the data size from the FIT File Header.
     pub fn data_size(&self) -> u32 {
         let mut data_size = self.header[HEADER_DATA_SIZE_LSB_OFFSET] as u32;
         data_size = data_size | (self.header[HEADER_DATA_SIZE_1_OFFSET] as u32) << 8;
@@ -96,6 +104,13 @@ impl FitHeader {
         data_size = data_size | (self.header[HEADER_DATA_SIZE_MSB_OFFSET] as u32) << 24;
         data_size
     }
+}
+
+/// Encapsulates a custom field definition, as described by definition messages and used by data messages.
+struct FieldDefinition {
+    field_def: u8,
+    size: u8,
+    base_type: u8
 }
 
 #[derive(Debug, Default)]
@@ -109,25 +124,9 @@ impl FitRecord {
         rec
     }
 
-    fn read_local_msg_type0<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
-        // Next byte tells us the type of the local message.
-        let mut msg_type: [u8; 1] = [0; 1];
-        reader.read_exact(&mut msg_type)?;
+    /// Assumes the buffer is pointing to the beginning of the definition message, reads the message, and updates the field definitions.
+    fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>, definitions: &mut FieldDefinitionMap) -> Result<()> {
 
-        match msg_type[0] {
-            // activity file message
-            4 => (),
-            // workout file message
-            5 => (),
-            // course file message
-            6 => (),
-            // record message
-            _ => (),
-        }
-        Ok(())
-    }
-
-    fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
         // Definition message (5 bytes).
         // 0: Reserved
         // 1: Architecture
@@ -139,9 +138,13 @@ impl FitRecord {
         // Read each field.
         for _i in 0..definition_header[4] {
 
-            // Field definition (3 bytes).
-            let field_definition: [u8; 3] = [0; 3];
-            reader.read_exact(&mut definition_header)?;
+            // Read the field definition (3 bytes).
+            let mut field_def_bytes: [u8; 3] = [0; 3];
+            reader.read_exact(&mut field_def_bytes)?;
+
+            // Add the definition to the hash map.
+            let field_def = FieldDefinition { field_def:field_def_bytes[0], size:field_def_bytes[1], base_type:field_def_bytes[2] };
+            definitions.push(field_def);
         }
 
         // Read the number of developer fields (1 byte).
@@ -152,42 +155,53 @@ impl FitRecord {
         for _i in 0..num_dev_fields[0] {
 
             // Field definition (3 bytes).
-            let field_definition: [u8; 3] = [0; 3];
-            reader.read_exact(&mut definition_header)?;
+            let mut field_def_bytes: [u8; 3] = [0; 3];
+            reader.read_exact(&mut field_def_bytes)?;
         }
+
         Ok(())
     }
 
-    fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+    /// Assumes the buffer is pointing to the beginning of the data message, reads the message.
+    fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>, definitions: &mut FieldDefinitionMap) -> Result<()> {
+
         // Local message type.
         let local_msg_type = self.header_byte[0] & RECORD_HDR_LOCAL_MSG_TYPE;
 
-        match local_msg_type {
-            0 => self.read_local_msg_type0(reader)?,
-            _ => (),
+        // Read data for each message definition.
+        for def in definitions {
+            let data = read_n(reader, def.size as u64);
         }
+
         Ok(())
     }
 
+    /// Assumes the buffer is pointing to the beginning of the compressed timestamp message, reads the message.
     fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+
         // Compressed Timestamp Header.
         let time_offset = self.header_byte[0] & 0x0f;
         Ok(())
     }
 
-    fn read_normal_message<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+    /// Assumes the buffer is pointing to the beginning of the normal message, reads the message.
+    fn read_normal_message<R: Read>(&mut self, reader: &mut BufReader<R>, definitions: &mut FieldDefinitionMap) -> Result<()> {
+
         // Data or definition message?
         // A value of zero indicates a data message.
         if self.header_byte[0] & RECORD_HDR_MSG_TYPE != 0 {
-            self.read_definition_message(reader)?;
+            self.read_definition_message(reader, definitions)?;
         }
         else {
-            self.read_data_message(reader)?;
+            self.read_data_message(reader, definitions)?;
         }
+
         Ok(())
     }
 
-    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+    /// Assumes the buffer is pointing to the beginning of the next record message, reads the message.
+    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>, definitions: &mut FieldDefinitionMap) -> Result<()> {
+
         // The first byte is a bit field that tells us more about the record.
         reader.read_exact(&mut self.header_byte)?;
 
@@ -197,7 +211,7 @@ impl FitRecord {
             self.read_compressed_timestamp_message(reader)?;
         }
         else {
-            self.read_normal_message(reader);
+            self.read_normal_message(reader, definitions)?;
         }
 
         Ok(())
@@ -219,21 +233,24 @@ impl Fit {
     fn check_crc(&self) {
     }
 
+    /// Reads the FIT data from the buffer.
     pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+
         // Read the file header.
         self.header.read(reader)?;
 
         // Make sure the header is valid.
         if self.header.validate() {
+            let mut done = false;
+            let mut definitions = FieldDefinitionMap::new();
 
             // Read each record.
-            let mut done = false;
             while !done {
                 let mut record = FitRecord::new();
 
-                match record.read(reader) {
-                    Ok(i) => self.records.push(record),
-                    Err(e) => done = true,
+                match record.read(reader, &mut definitions) {
+                    Ok(_i) => self.records.push(record),
+                    Err(_e) => done = true,
                 }
             }
 
@@ -245,8 +262,8 @@ impl Fit {
     }
 }
 
-pub fn read<R: Read>(reader: &mut BufReader<R>) -> Fit {
+pub fn read<R: Read>(reader: &mut BufReader<R>) -> Result<Fit> {
     let mut fit: Fit = Fit::new();
-    fit.read(reader);
-    fit
+    fit.read(reader)?;
+    Ok(fit)
 }

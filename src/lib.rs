@@ -29,9 +29,11 @@ mod tests {
         let mut reader = std::io::BufReader::new(file);
         let fit = crate::fit::read(&mut reader);
 
-        println!("Header: ");
-        fit.header.print();
-        println!("");
-        println!("Data Size: {}", fit.header.data_size());
+        match fit {
+            Ok(fit2) => {
+                fit2.header.print();
+            }
+            _ => (),
+        }
     }
 }
