@@ -40,7 +40,7 @@ const HEADER_CRC_1_OFFSET: usize = 12;
 const HEADER_CRC_2_OFFSET: usize = 13;
 
 const DEF_MSG_RESERVED: usize = 0;
-const DEF_MSG_ARCHITECTURE: usize = 1;
+const DEF_MSG_ARCHITECTURE: usize = 1; // 1 = Definition and Data Message are Big Endian
 const DEF_MSG_GLOBAL_MSG_NUM: usize = 2;
 const DEF_MSG_NUM_FIELDS: usize = 4;
 
@@ -74,7 +74,7 @@ pub const GLOBAL_MSG_NUM_SCHEDULE: u8 = 28;
 pub const GLOBAL_MSG_NUM_WEIGHT_SCALE: u8 = 30;
 
 type FieldDefinitionMap = Vec<FieldDefinition>;
-type Callback = fn(data: Vec<u64>);
+type Callback = fn(global_message_num: u16, data: Vec<u64>);
 
 fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec<u8> >
 {
@@ -84,13 +84,25 @@ fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec
     Ok(buf)
 }
 
-fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize) -> u64 {
+fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 {
+    if num_bytes == 1 {
+        return bytes[0] as u64;
+    }
+
     let mut num = 0;
     let mut offset = 0;
 
-    for i in 0..num_bytes {
-        num = num | (bytes[i] as u64) << offset;
-        offset = offset + 8;
+    if big_endian {
+        for i in 0..num_bytes {
+            num = num | (bytes[i] as u64) << offset;
+            offset = offset + 8;
+        }
+    }
+    else {
+        for i in 0..num_bytes {
+            num = num | (bytes[num_bytes - i - 1] as u64) << offset;
+            offset = offset + 8;
+        }
     }
     num
 }
@@ -178,14 +190,14 @@ impl Eq for FieldDefinition { }
 
 #[derive(Debug, Default)]
 struct State {
-    current_architecture: u8,
+    current_architecture: bool, // 1 = big endian
     current_global_msg_num: u16,
     current_definitions: FieldDefinitionMap
 }
 
 impl State {
     pub fn new() -> Self {
-        let state = State{ current_architecture: 0, current_global_msg_num:0, current_definitions: FieldDefinitionMap::new() };
+        let state = State{ current_architecture: false, current_global_msg_num:0, current_definitions: FieldDefinitionMap::new() };
         state
     }
 }
@@ -215,8 +227,8 @@ impl FitRecord {
         state.current_definitions.clear();
 
         // Make a note of the Architecture and Global Message Number.
-        state.current_architecture = definition_header[DEF_MSG_ARCHITECTURE];
-        state.current_global_msg_num = byte_array_to_num(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2) as u16;
+        state.current_architecture = definition_header[DEF_MSG_ARCHITECTURE] == 1;
+        state.current_global_msg_num = byte_array_to_num(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.current_architecture) as u16;
 
         // Read each field.
         let num_fields = definition_header[DEF_MSG_NUM_FIELDS];
@@ -263,27 +275,27 @@ impl FitRecord {
             let data = read_n(reader, def.size as u64)?;
 
             match def.base_type {
-                0x00 => { records.push(data[0] as u64) },
-                0x01 => { records.push((data[0] & 0x7f) as u64) },
-                0x02 => { records.push(data[0] as u64) },
-                0x83 => { let num = byte_array_to_num(data, 2); records.push(num & 0x7FFF); },
-                0x84 => { let num = byte_array_to_num(data, 2); records.push(num); },
-                0x85 => { let num = byte_array_to_num(data, 4); records.push(num & 0x7FFFFFFF); },
-                0x86 => { let num = byte_array_to_num(data, 4); records.push(num); },
+                0x00 => { let num = byte_array_to_num(data, 1, state.current_architecture); records.push(num); },
+                0x01 => { let num = byte_array_to_num(data, 1, state.current_architecture); records.push(num & 0x7f); },
+                0x02 => { let num = byte_array_to_num(data, 1, state.current_architecture); records.push(num); },
+                0x83 => { let num = byte_array_to_num(data, 2, state.current_architecture); records.push(num & 0x7FFF); },
+                0x84 => { let num = byte_array_to_num(data, 2, state.current_architecture); records.push(num); },
+                0x85 => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num & 0x7FFFFFFF); },
+                0x86 => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num); },
                 0x07 => (),
                 0x88 => (),
                 0x89 => (),
-                0x0A => { records.push(data[0] as u64) },
-                0x8B => { let num = byte_array_to_num(data, 2); records.push(num); },
-                0x8C => { let num = byte_array_to_num(data, 4); records.push(num); },
+                0x0A => { let num = byte_array_to_num(data, 1, state.current_architecture); records.push(num); },
+                0x8B => { let num = byte_array_to_num(data, 2, state.current_architecture); records.push(num); },
+                0x8C => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num); },
                 0x0D => (),
                 0x8E => (),
-                0x8F => { let num = byte_array_to_num(data, 8); records.push(num); },
+                0x8F => { let num = byte_array_to_num(data, 8, state.current_architecture); records.push(num); },
                 0x90 => (),
                 _ => ()
             }
         }
-        callback(records);
+        callback(state.current_global_msg_num, records);
         panic!("debugging!");
 
         Ok(())
