@@ -23,11 +23,18 @@ mod fit;
 
 #[cfg(test)]
 mod tests {
+    fn callback(records: Vec<u64>) {
+        println!("callback");
+        for i in records {
+            println!("{}", i);
+        }
+    }
+
     #[test]
     fn file1_run() {
         let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
-        let fit = crate::fit::read(&mut reader);
+        let fit = crate::fit::read(&mut reader, callback);
 
         match fit {
             Ok(fit2) => {

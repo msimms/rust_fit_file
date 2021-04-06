@@ -39,13 +39,42 @@ const HEADER_DATA_TYPE_3_OFFSET: usize = 11; // T
 const HEADER_CRC_1_OFFSET: usize = 12;
 const HEADER_CRC_2_OFFSET: usize = 13;
 
+const DEF_MSG_RESERVED: usize = 0;
+const DEF_MSG_ARCHITECTURE: usize = 1;
+const DEF_MSG_GLOBAL_MSG_NUM: usize = 2;
+const DEF_MSG_NUM_FIELDS: usize = 4;
+
 const RECORD_HDR_NORMAL: u8 = 0x80;
 const RECORD_HDR_MSG_TYPE: u8 = 0x40;
 const RECORD_HDR_MSG_TYPE_SPECIFIC: u8 = 0x20;
 const RECORD_HDR_RESERVED: u8 = 0x10;
 const RECORD_HDR_LOCAL_MSG_TYPE: u8 = 0x0f;
 
+pub const GLOBAL_MSG_NUM_FILE_ID: u8 = 0;
+pub const GLOBAL_MSG_NUM_CAPABILITIES: u8 = 1;
+pub const GLOBAL_MSG_NUM_DEVICE_SETTINGS: u8 = 2;
+pub const GLOBAL_MSG_NUM_USER_PROFILE: u8 = 3;
+pub const GLOBAL_MSG_NUM_HRM_PROFILE: u8 = 4;
+pub const GLOBAL_MSG_NUM_SDM_PROFILE: u8 = 5;
+pub const GLOBAL_MSG_NUM_BIKE_PROFILE: u8 = 6;
+pub const GLOBAL_MSG_NUM_ZONES_TARGET: u8 = 7;
+pub const GLOBAL_MSG_NUM_HR_ZONE: u8 = 8;
+pub const GLOBAL_MSG_NUM_POWER_ZONE: u8 = 9;
+pub const GLOBAL_MSG_NUM_MET_ZONE: u8 = 10;
+pub const GLOBAL_MSG_NUM_SPORT: u8 = 12;
+pub const GLOBAL_MSG_NUM_GOAL: u8 = 15;
+pub const GLOBAL_MSG_NUM_SESSION: u8 = 18;
+pub const GLOBAL_MSG_NUM_LAP: u8 = 19;
+pub const GLOBAL_MSG_NUM_RECORD: u8 = 20;
+pub const GLOBAL_MSG_NUM_EVENT: u8 = 21;
+pub const GLOBAL_MSG_NUM_DEVICE_INFO: u8 = 23;
+pub const GLOBAL_MSG_NUM_WORKOUT: u8 = 26;
+pub const GLOBAL_MSG_NUM_WORKOUT_STEP: u8 = 27;
+pub const GLOBAL_MSG_NUM_SCHEDULE: u8 = 28;
+pub const GLOBAL_MSG_NUM_WEIGHT_SCALE: u8 = 30;
+
 type FieldDefinitionMap = Vec<FieldDefinition>;
+type Callback = fn(data: Vec<u64>);
 
 fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec<u8> >
 {
@@ -53,6 +82,17 @@ fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec
     let mut chunk = reader.take(bytes_to_read);
     let _n = chunk.read_to_end(&mut buf).expect("Didn't read enough");
     Ok(buf)
+}
+
+fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize) -> u64 {
+    let mut num = 0;
+    let mut offset = 0;
+
+    for i in 0..num_bytes {
+        num = num | (bytes[i] as u64) << offset;
+        offset = offset + 8;
+    }
+    num
 }
 
 #[derive(Debug, Default)]
@@ -78,6 +118,7 @@ impl FitHeader {
             let mut additional_bytes = read_n(reader, 2)?;
             self.header.append(&mut additional_bytes);
         }
+
         Ok(())
     }
 
@@ -108,6 +149,7 @@ impl FitHeader {
 }
 
 /// Encapsulates a custom field definition, as described by definition messages and used by data messages.
+#[derive(Debug, Default)]
 struct FieldDefinition {
     field_def: u8,
     size: u8,
@@ -135,18 +177,31 @@ impl PartialEq for FieldDefinition {
 impl Eq for FieldDefinition { }
 
 #[derive(Debug, Default)]
+struct State {
+    current_architecture: u8,
+    current_global_msg_num: u16,
+    current_definitions: FieldDefinitionMap
+}
+
+impl State {
+    pub fn new() -> Self {
+        let state = State{ current_architecture: 0, current_global_msg_num:0, current_definitions: FieldDefinitionMap::new() };
+        state
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct FitRecord {
-    pub header_byte: [u8; 1]
 }
 
 impl FitRecord {
     pub fn new() -> Self {
-        let rec = FitRecord{ header_byte: [0u8; 1] };
+        let rec = FitRecord{ };
         rec
     }
 
     /// Assumes the buffer is pointing to the beginning of the definition message, reads the message, and updates the field definitions.
-    fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>, definitions: &mut FieldDefinitionMap) -> Result<()> {
+    fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut State) -> Result<()> {
 
         // Definition message (5 bytes).
         // 0: Reserved
@@ -157,10 +212,15 @@ impl FitRecord {
         reader.read_exact(&mut definition_header)?;
 
         // Remove any old definitions.
-        definitions.clear();
+        state.current_definitions.clear();
+
+        // Make a note of the Architecture and Global Message Number.
+        state.current_architecture = definition_header[DEF_MSG_ARCHITECTURE];
+        state.current_global_msg_num = byte_array_to_num(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2) as u16;
 
         // Read each field.
-        for _i in 0..definition_header[4] {
+        let num_fields = definition_header[DEF_MSG_NUM_FIELDS];
+        for _i in 0..num_fields {
 
             // Read the field definition (3 bytes).
             let mut field_def_bytes: [u8; 3] = [0; 3];
@@ -170,14 +230,11 @@ impl FitRecord {
             let field_def = FieldDefinition { field_def:field_def_bytes[0], size:field_def_bytes[1], base_type:field_def_bytes[2] };
 
             // Insert sorted.
-            match definitions.binary_search(&field_def) {
+            match state.current_definitions.binary_search(&field_def) {
                 Ok(pos) => {} // element already in vector @ `pos` 
-                Err(pos) => definitions.insert(pos, field_def),
+                Err(pos) => state.current_definitions.insert(pos, field_def),
             }
         }
-        //for field_def in definitions {
-        //    println!("{} {} {}", field_def.field_def, field_def.size, field_def.base_type);
-        //}
 
         // Read the number of developer fields (1 byte).
         let mut num_dev_fields: [u8; 1] = [0; 1];
@@ -195,76 +252,80 @@ impl FitRecord {
     }
 
     /// Assumes the buffer is pointing to the beginning of the data message, reads the message.
-    fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>, definitions: &mut FieldDefinitionMap) -> Result<()> {
+    fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut State, callback: Callback) -> Result<()> {
 
         // Local message type.
-        let local_msg_type = self.header_byte[0] & RECORD_HDR_LOCAL_MSG_TYPE;
+        let local_msg_type = header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
 
         // Read data for each message definition.
-        for def in definitions {
-            let data = read_n(reader, def.size as u64);
+        let mut records = Vec::new();
+        for def in &state.current_definitions {
+            let data = read_n(reader, def.size as u64)?;
 
             match def.base_type {
-                0x00 => (),
-                0x01 => (),
-                0x02 => (),
-                0x83 => (),
-                0x84 => (),
-                0x85 => (),
-                0x86 => (),
+                0x00 => { records.push(data[0] as u64) },
+                0x01 => { records.push((data[0] & 0x7f) as u64) },
+                0x02 => { records.push(data[0] as u64) },
+                0x83 => { let num = byte_array_to_num(data, 2); records.push(num & 0x7FFF); },
+                0x84 => { let num = byte_array_to_num(data, 2); records.push(num); },
+                0x85 => { let num = byte_array_to_num(data, 4); records.push(num & 0x7FFFFFFF); },
+                0x86 => { let num = byte_array_to_num(data, 4); records.push(num); },
                 0x07 => (),
                 0x88 => (),
                 0x89 => (),
-                0x0A => (),
-                0x8B => (),
-                0x8C => (),
+                0x0A => { records.push(data[0] as u64) },
+                0x8B => { let num = byte_array_to_num(data, 2); records.push(num); },
+                0x8C => { let num = byte_array_to_num(data, 4); records.push(num); },
                 0x0D => (),
                 0x8E => (),
-                0x8F => (),
+                0x8F => { let num = byte_array_to_num(data, 8); records.push(num); },
                 0x90 => (),
                 _ => ()
             }
         }
+        callback(records);
+        panic!("debugging!");
 
         Ok(())
     }
 
     /// Assumes the buffer is pointing to the beginning of the compressed timestamp message, reads the message.
-    fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+    fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8) -> Result<()> {
 
         // Compressed Timestamp Header.
-        let time_offset = self.header_byte[0] & 0x0f;
+        let time_offset = header_byte & 0x0f;
         Ok(())
     }
 
     /// Assumes the buffer is pointing to the beginning of the normal message, reads the message.
-    fn read_normal_message<R: Read>(&mut self, reader: &mut BufReader<R>, definitions: &mut FieldDefinitionMap) -> Result<()> {
+    fn read_normal_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut State, callback: Callback) -> Result<()> {
 
         // Data or definition message?
         // A value of zero indicates a data message.
-        if self.header_byte[0] & RECORD_HDR_MSG_TYPE != 0 {
-            self.read_definition_message(reader, definitions)?;
+        if header_byte & RECORD_HDR_MSG_TYPE != 0 {
+            self.read_definition_message(reader, state)?;
         }
         else {
-            self.read_data_message(reader, definitions)?;
+            self.read_data_message(reader, header_byte, state, callback)?;
         }
 
         Ok(())
     }
 
     /// Assumes the buffer is pointing to the beginning of the next record message, reads the message.
-    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>, definitions: &mut FieldDefinitionMap) -> Result<()> {
+    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut State, callback: Callback) -> Result<()> {
 
         // The first byte is a bit field that tells us more about the record.
-        reader.read_exact(&mut self.header_byte)?;
+        let mut header_byte: [u8; 1] = [0; 1];
+        reader.read_exact(&mut header_byte)?;
 
         // Normal header or compressed timestamp header?
         // A value of zero indicates a normal header.
-        if self.header_byte[0] & RECORD_HDR_NORMAL != 0 {
-            self.read_compressed_timestamp_message(reader)?;
+        if header_byte[0] & RECORD_HDR_NORMAL != 0 {
+            self.read_compressed_timestamp_message(reader, header_byte[0])?;
         }
         else {
-            self.read_normal_message(reader, definitions)?;
+            self.read_normal_message(reader, header_byte[0], state, callback)?;
         }
 
         Ok(())
@@ -273,13 +334,12 @@ impl FitRecord {
 
 #[derive(Debug, Default)]
 pub struct Fit {
-    pub header: FitHeader,
-    pub records: Vec<FitRecord>
+    pub header: FitHeader
 }
 
 impl Fit {
     pub fn new() -> Self {
-        let fit = Fit{ header: FitHeader::new(), records: Vec::new() };
+        let fit = Fit{ header: FitHeader::new() };
         fit
     }
 
@@ -287,7 +347,7 @@ impl Fit {
     }
 
     /// Reads the FIT data from the buffer.
-    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>) -> Result<()> {
+    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>, callback: Callback) -> Result<()> {
 
         // Read the file header.
         self.header.read(reader)?;
@@ -295,16 +355,12 @@ impl Fit {
         // Make sure the header is valid.
         if self.header.validate() {
             let mut done = false;
-            let mut definitions = FieldDefinitionMap::new();
+            let mut state = State::new();
 
             // Read each record.
             while !done {
                 let mut record = FitRecord::new();
-
-                match record.read(reader, &mut definitions) {
-                    Ok(_i) => self.records.push(record),
-                    Err(_e) => done = true,
-                }
+                record.read(reader, &mut state, callback)?
             }
 
             // Read the CRC.
@@ -315,8 +371,8 @@ impl Fit {
     }
 }
 
-pub fn read<R: Read>(reader: &mut BufReader<R>) -> Result<Fit> {
+pub fn read<R: Read>(reader: &mut BufReader<R>, callback: Callback) -> Result<Fit> {
     let mut fit: Fit = Fit::new();
-    fit.read(reader)?;
+    fit.read(reader, callback)?;
     Ok(fit)
 }
