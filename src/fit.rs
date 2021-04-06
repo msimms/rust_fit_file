@@ -213,7 +213,7 @@ impl FitRecord {
     }
 
     /// Assumes the buffer is pointing to the beginning of the definition message, reads the message, and updates the field definitions.
-    fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut State) -> Result<()> {
+    fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut State) -> Result<()> {
 
         // Definition message (5 bytes).
         // 0: Reserved
@@ -248,16 +248,20 @@ impl FitRecord {
             }
         }
 
-        // Read the number of developer fields (1 byte).
-        let mut num_dev_fields: [u8; 1] = [0; 1];
-        reader.read_exact(&mut num_dev_fields)?;
+        // Is there any developer information in this record?
+        if header_byte & RECORD_HDR_MSG_TYPE_SPECIFIC != 0 {
 
-        // Read each developer field.
-        for _i in 0..num_dev_fields[0] {
+            // Read the number of developer fields (1 byte).
+            let mut num_dev_fields: [u8; 1] = [0; 1];
+            reader.read_exact(&mut num_dev_fields)?;
 
-            // Field definition (3 bytes).
-            let mut field_def_bytes: [u8; 3] = [0; 3];
-            reader.read_exact(&mut field_def_bytes)?;
+            // Read each developer field.
+            for _i in 0..num_dev_fields[0] {
+
+                // Field definition (3 bytes).
+                let mut field_def_bytes: [u8; 3] = [0; 3];
+                reader.read_exact(&mut field_def_bytes)?;
+            }
         }
 
         Ok(())
@@ -296,7 +300,6 @@ impl FitRecord {
             }
         }
         callback(state.current_global_msg_num, records);
-        panic!("debugging!");
 
         Ok(())
     }
@@ -315,7 +318,7 @@ impl FitRecord {
         // Data or definition message?
         // A value of zero indicates a data message.
         if header_byte & RECORD_HDR_MSG_TYPE != 0 {
-            self.read_definition_message(reader, state)?;
+            self.read_definition_message(reader, header_byte, state)?;
         }
         else {
             self.read_data_message(reader, header_byte, state, callback)?;
