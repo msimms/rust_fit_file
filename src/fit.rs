@@ -18,6 +18,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+ #![allow(dead_code)]
 
 use std::io::Result;
 use std::io::Read;
@@ -51,31 +52,59 @@ const RECORD_HDR_MSG_TYPE_SPECIFIC: u8 = 0x20;
 const RECORD_HDR_RESERVED: u8 = 0x10;
 const RECORD_HDR_LOCAL_MSG_TYPE: u8 = 0x0f;
 
-pub const GLOBAL_MSG_NUM_FILE_ID: u8 = 0;
-pub const GLOBAL_MSG_NUM_CAPABILITIES: u8 = 1;
-pub const GLOBAL_MSG_NUM_DEVICE_SETTINGS: u8 = 2;
-pub const GLOBAL_MSG_NUM_USER_PROFILE: u8 = 3;
-pub const GLOBAL_MSG_NUM_HRM_PROFILE: u8 = 4;
-pub const GLOBAL_MSG_NUM_SDM_PROFILE: u8 = 5;
-pub const GLOBAL_MSG_NUM_BIKE_PROFILE: u8 = 6;
-pub const GLOBAL_MSG_NUM_ZONES_TARGET: u8 = 7;
-pub const GLOBAL_MSG_NUM_HR_ZONE: u8 = 8;
-pub const GLOBAL_MSG_NUM_POWER_ZONE: u8 = 9;
-pub const GLOBAL_MSG_NUM_MET_ZONE: u8 = 10;
-pub const GLOBAL_MSG_NUM_SPORT: u8 = 12;
-pub const GLOBAL_MSG_NUM_GOAL: u8 = 15;
-pub const GLOBAL_MSG_NUM_SESSION: u8 = 18;
-pub const GLOBAL_MSG_NUM_LAP: u8 = 19;
-pub const GLOBAL_MSG_NUM_RECORD: u8 = 20;
-pub const GLOBAL_MSG_NUM_EVENT: u8 = 21;
-pub const GLOBAL_MSG_NUM_DEVICE_INFO: u8 = 23;
-pub const GLOBAL_MSG_NUM_WORKOUT: u8 = 26;
-pub const GLOBAL_MSG_NUM_WORKOUT_STEP: u8 = 27;
-pub const GLOBAL_MSG_NUM_SCHEDULE: u8 = 28;
-pub const GLOBAL_MSG_NUM_WEIGHT_SCALE: u8 = 30;
+pub const GLOBAL_MSG_NUM_FILE_ID: u16 = 0;
+pub const GLOBAL_MSG_NUM_CAPABILITIES: u16 = 1;
+pub const GLOBAL_MSG_NUM_DEVICE_SETTINGS: u16 = 2;
+pub const GLOBAL_MSG_NUM_USER_PROFILE: u16 = 3;
+pub const GLOBAL_MSG_NUM_HRM_PROFILE: u16 = 4;
+pub const GLOBAL_MSG_NUM_SDM_PROFILE: u16 = 5;
+pub const GLOBAL_MSG_NUM_BIKE_PROFILE: u16 = 6;
+pub const GLOBAL_MSG_NUM_ZONES_TARGET: u16 = 7;
+pub const GLOBAL_MSG_NUM_HR_ZONE: u16 = 8;
+pub const GLOBAL_MSG_NUM_POWER_ZONE: u16 = 9;
+pub const GLOBAL_MSG_NUM_MET_ZONE: u16 = 10;
+pub const GLOBAL_MSG_NUM_SPORT: u16 = 12;
+pub const GLOBAL_MSG_NUM_GOAL: u16 = 15;
+pub const GLOBAL_MSG_NUM_SESSION: u16 = 18;
+pub const GLOBAL_MSG_NUM_LAP: u16 = 19;
+pub const GLOBAL_MSG_NUM_RECORD: u16 = 20;
+pub const GLOBAL_MSG_NUM_EVENT: u16 = 21;
+pub const GLOBAL_MSG_NUM_DEVICE_INFO: u16 = 23;
+pub const GLOBAL_MSG_NUM_WORKOUT: u16 = 26;
+pub const GLOBAL_MSG_NUM_WORKOUT_STEP: u16 = 27;
+pub const GLOBAL_MSG_NUM_SCHEDULE: u16 = 28;
+pub const GLOBAL_MSG_NUM_WEIGHT_SCALE: u16 = 30;
 
 type FieldDefinitionMap = Vec<FieldDefinition>;
 type Callback = fn(global_message_num: u16, data: Vec<u64>);
+
+pub fn init_global_msg_name_map() -> HashMap<u16, String> {
+    let mut global_msg_name_map = HashMap::<u16, String>::new();
+
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_FILE_ID, "File ID".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_CAPABILITIES, "Capabilities".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_DEVICE_SETTINGS, "Device Settings".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_USER_PROFILE, "User Profile".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_HRM_PROFILE, "HRM Profile".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SDM_PROFILE, "SDM Profile".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_BIKE_PROFILE, "Bike Profile".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_ZONES_TARGET, "Zones Target".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_HR_ZONE, "HR Zone".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_POWER_ZONE, "Power Zone".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_MET_ZONE, "MET Zone".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SPORT, "Sport".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_GOAL, "Goal".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SESSION, "Session".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_LAP, "Lap".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_RECORD, "Record".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_EVENT, "Event".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_DEVICE_INFO, "Device Info".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_WORKOUT, "Workout".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_WORKOUT_STEP, "Workout Step".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SCHEDULE, "Schedule".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_WEIGHT_SCALE, "Weight Scale".to_string());
+    global_msg_name_map
+}
 
 fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec<u8> >
 {
@@ -205,7 +234,7 @@ impl State {
 }
 
 #[derive(Debug, Default)]
-pub struct FitRecord {
+struct FitRecord {
 }
 
 impl FitRecord {
@@ -323,7 +352,7 @@ impl FitRecord {
         let time_offset = header_byte & 0x0f;
 
         // Read the data fields that follow.
-        self.read_data_message(reader, header_byte, state, callback);
+        self.read_data_message(reader, header_byte, state, callback)?;
 
         Ok(())
     }
@@ -344,7 +373,7 @@ impl FitRecord {
     }
 
     /// Assumes the buffer is pointing to the beginning of the next record message, reads the message.
-    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut State, callback: Callback) -> Result<()> {
+    fn read<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut State, callback: Callback) -> Result<()> {
 
         // The first byte is a bit field that tells us more about the record.
         let mut header_byte: [u8; 1] = [0; 1];
@@ -391,7 +420,8 @@ impl Fit {
             // Read each record.
             while !done {
                 let mut record = FitRecord::new();
-                record.read(reader, &mut state, callback)?
+                record.read(reader, &mut state, callback)?;
+                done = reader.buffer().is_empty();
             }
 
             // Read the CRC.

@@ -24,7 +24,13 @@ mod fit;
 #[cfg(test)]
 mod tests {
     fn callback(global_message_num: u16, records: Vec<u64>) {
-        println!("Callback for global message num {} ", global_message_num);
+        let global_message_names = crate::fit::init_global_msg_name_map();
+
+        match global_message_names.get(&global_message_num) {
+            Some(name) => println!("Callback for global message num {}: {}", global_message_num, name),
+            None => println!("Callback for global message num {}", global_message_num)
+        }
+
         for i in records {
             print!("{} ", i);
         }
