@@ -24,10 +24,11 @@ mod fit;
 #[cfg(test)]
 mod tests {
     fn callback(global_message_num: u16, records: Vec<u64>) {
-        println!("callback for global message num {} ", global_message_num);
+        println!("Callback for global message num {} ", global_message_num);
         for i in records {
-            println!("{}", i);
+            print!("{} ", i);
         }
+        println!("");
     }
 
     #[test]

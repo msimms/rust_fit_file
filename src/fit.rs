@@ -23,6 +23,7 @@ use std::io::Result;
 use std::io::Read;
 use std::io::BufReader;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 
 const HEADER_FILE_SIZE_OFFSET: usize = 0;
 const HEADER_PROTOCOL_VERSION_OFFSET: usize = 1;
@@ -81,6 +82,7 @@ fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec
     let mut buf = vec![];
     let mut chunk = reader.take(bytes_to_read);
     let _n = chunk.read_to_end(&mut buf).expect("Didn't read enough");
+
     Ok(buf)
 }
 
@@ -100,7 +102,7 @@ fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 
     }
     else {
         for i in 0..num_bytes {
-            num = num | (bytes[num_bytes - i - 1] as u64) << offset;
+            num = (num << offset) | (bytes[num_bytes - i - 1] as u64);
             offset = offset + 8;
         }
     }
@@ -192,12 +194,12 @@ impl Eq for FieldDefinition { }
 struct State {
     current_architecture: bool, // 1 = big endian
     current_global_msg_num: u16,
-    current_definitions: FieldDefinitionMap
+    local_msg_defs: HashMap<u8, FieldDefinitionMap>
 }
 
 impl State {
     pub fn new() -> Self {
-        let state = State{ current_architecture: false, current_global_msg_num:0, current_definitions: FieldDefinitionMap::new() };
+        let state = State{ current_architecture: false, current_global_msg_num:0, local_msg_defs: HashMap::<u8, FieldDefinitionMap>::new() };
         state
     }
 }
@@ -215,6 +217,9 @@ impl FitRecord {
     /// Assumes the buffer is pointing to the beginning of the definition message, reads the message, and updates the field definitions.
     fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut State) -> Result<()> {
 
+        // Local message type.
+        let local_msg_type = header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
+
         // Definition message (5 bytes).
         // 0: Reserved
         // 1: Architecture
@@ -223,14 +228,12 @@ impl FitRecord {
         let mut definition_header: [u8; 5] = [0; 5];
         reader.read_exact(&mut definition_header)?;
 
-        // Remove any old definitions.
-        state.current_definitions.clear();
-
         // Make a note of the Architecture and Global Message Number.
         state.current_architecture = definition_header[DEF_MSG_ARCHITECTURE] == 1;
         state.current_global_msg_num = byte_array_to_num(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.current_architecture) as u16;
 
         // Read each field.
+        let mut msg_defs: FieldDefinitionMap = FieldDefinitionMap::new();
         let num_fields = definition_header[DEF_MSG_NUM_FIELDS];
         for _i in 0..num_fields {
 
@@ -242,9 +245,9 @@ impl FitRecord {
             let field_def = FieldDefinition { field_def:field_def_bytes[0], size:field_def_bytes[1], base_type:field_def_bytes[2] };
 
             // Insert sorted.
-            match state.current_definitions.binary_search(&field_def) {
-                Ok(pos) => {} // element already in vector @ `pos` 
-                Err(pos) => state.current_definitions.insert(pos, field_def),
+            match msg_defs.binary_search(&field_def) {
+                Ok(_pos) => {} // element already in vector @ `pos` 
+                Err(pos) => msg_defs.insert(pos, field_def),
             }
         }
 
@@ -264,6 +267,9 @@ impl FitRecord {
             }
         }
 
+        // Associate the field definitions with the local message type.
+        state.local_msg_defs.insert(local_msg_type, msg_defs);
+
         Ok(())
     }
 
@@ -273,9 +279,12 @@ impl FitRecord {
         // Local message type.
         let local_msg_type = header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
 
+        // Retrieve the field definitions based on the message type.
+        let msg_defs = state.local_msg_defs.get(&local_msg_type).unwrap();
+
         // Read data for each message definition.
         let mut records = Vec::new();
-        for def in &state.current_definitions {
+        for def in msg_defs.iter() {
             let data = read_n(reader, def.size as u64)?;
 
             match def.base_type {
@@ -286,17 +295,20 @@ impl FitRecord {
                 0x84 => { let num = byte_array_to_num(data, 2, state.current_architecture); records.push(num); },
                 0x85 => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num & 0x7FFFFFFF); },
                 0x86 => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num); },
-                0x07 => (),
-                0x88 => (),
-                0x89 => (),
+                0x07 => { panic!("base type not implemented {}", def.base_type); },
+                0x88 => { panic!("base type not implemented {}", def.base_type); },
+                0x89 => { panic!("base type not implemented {}", def.base_type); },
                 0x0A => { let num = byte_array_to_num(data, 1, state.current_architecture); records.push(num); },
                 0x8B => { let num = byte_array_to_num(data, 2, state.current_architecture); records.push(num); },
                 0x8C => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num); },
-                0x0D => (),
-                0x8E => (),
+                0x0D => { for i in 0..def.size {
+                        records.push(data[i as usize] as u64); 
+                    }
+                 },
+                0x8E => { panic!("base type not implemented {}", def.base_type); },
                 0x8F => { let num = byte_array_to_num(data, 8, state.current_architecture); records.push(num); },
-                0x90 => (),
-                _ => ()
+                0x90 => { panic!("base type not implemented {}", def.base_type); },
+                _ => { panic!("base type not implemented {}", def.base_type); }
             }
         }
         callback(state.current_global_msg_num, records);
@@ -305,10 +317,14 @@ impl FitRecord {
     }
 
     /// Assumes the buffer is pointing to the beginning of the compressed timestamp message, reads the message.
-    fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8) -> Result<()> {
+    fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut State, callback: Callback) -> Result<()> {
 
         // Compressed Timestamp Header.
         let time_offset = header_byte & 0x0f;
+
+        // Read the data fields that follow.
+        self.read_data_message(reader, header_byte, state, callback);
+
         Ok(())
     }
 
@@ -337,7 +353,7 @@ impl FitRecord {
         // Normal header or compressed timestamp header?
         // A value of zero indicates a normal header.
         if header_byte[0] & RECORD_HDR_NORMAL != 0 {
-            self.read_compressed_timestamp_message(reader, header_byte[0])?;
+            self.read_compressed_timestamp_message(reader, header_byte[0], state, callback)?;
         }
         else {
             self.read_normal_message(reader, header_byte[0], state, callback)?;
@@ -389,5 +405,6 @@ impl Fit {
 pub fn read<R: Read>(reader: &mut BufReader<R>, callback: Callback) -> Result<Fit> {
     let mut fit: Fit = Fit::new();
     fit.read(reader, callback)?;
+
     Ok(fit)
 }
