@@ -23,7 +23,7 @@ mod fit;
 
 #[cfg(test)]
 mod tests {
-    fn callback(global_message_num: u16, local_msg_type: u8, records: Vec<u64>) {
+    fn callback(global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>) {
         let global_message_names = crate::fit::init_global_msg_name_map();
 
         match global_message_names.get(&global_message_num) {
@@ -31,8 +31,8 @@ mod tests {
             None => print!("Callback for global message num {}: local message type {}: ", global_message_num, local_msg_type)
         }
 
-        for i in records {
-            print!("{} ", i);
+        for field in fields {
+            print!("{} ", field.num);
         }
         println!("");
     }
@@ -40,6 +40,20 @@ mod tests {
     #[test]
     fn file1_run() {
         let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
+        let mut reader = std::io::BufReader::new(file);
+        let fit = crate::fit::read(&mut reader, callback);
+
+        match fit {
+            Ok(fit2) => {
+                fit2.header.print();
+            }
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn file2_run() {
+        let file = std::fs::File::open("tests/20191117_bike_wahoo_elemnt.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let fit = crate::fit::read(&mut reader, callback);
 

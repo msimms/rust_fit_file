@@ -76,7 +76,7 @@ pub const GLOBAL_MSG_NUM_SCHEDULE: u16 = 28;
 pub const GLOBAL_MSG_NUM_WEIGHT_SCALE: u16 = 30;
 
 type FieldDefinitionMap = Vec<FieldDefinition>;
-type Callback = fn(global_message_num: u16, local_message_type: u8, data: Vec<u64>);
+type Callback = fn(global_message_num: u16, local_message_type: u8, data: Vec<FieldValue>);
 
 pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     let mut global_msg_name_map = HashMap::<u16, String>::new();
@@ -115,6 +115,25 @@ fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec
     Ok(buf)
 }
 
+fn read_string<R: Read>(reader: &mut BufReader<R>) -> Result<String>
+{
+    let mut result = String::new();
+    let mut done = false;
+
+    while !done {
+        let buf = read_n(reader, 1)?;
+
+        if buf[0] == 0 {
+            done = true;
+        }
+        else {
+            result.push(buf[0] as char);
+        }
+    }
+
+    Ok(result)
+}
+
 fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 {
     if num_bytes == 1 {
         return bytes[0] as u64;
@@ -136,6 +155,73 @@ fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 
         }
     }
     num
+}
+
+pub struct FieldValue {
+    pub num: u64,
+    pub byte_array: Vec<u8>,
+    pub string: String
+}
+
+impl FieldValue {
+    pub fn new() -> Self {
+        let state = FieldValue{ num: 0, byte_array: Vec::<u8>::new(), string: String::new() };
+        state
+    }
+}
+
+/// Encapsulates a custom field definition, as described by definition messages and used by data messages.
+#[derive(Debug, Default)]
+struct FieldDefinition {
+    field_def: u8,
+    size: u8,
+    base_type: u8
+}
+
+impl Ord for FieldDefinition {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (self.field_def, &self.size, &self.base_type).cmp(&(other.field_def, &other.size, &other.base_type))
+    }
+}
+
+impl PartialOrd for FieldDefinition {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for FieldDefinition {
+    fn eq(&self, other: &Self) -> bool {
+        (self.field_def, &self.size) == (other.field_def, &other.size)
+    }
+}
+
+impl Eq for FieldDefinition { }
+
+#[derive(Debug, Default)]
+struct State {
+    current_architecture: bool, // 1 = big endian
+    current_global_msg_num: u16,
+    local_msg_defs: HashMap<u8, FieldDefinitionMap>, // Describes the format of local message types
+    num_records_read: usize // Total number of records read, for debugging purposes
+}
+
+impl State {
+    pub fn new() -> Self {
+        let state = State{ current_architecture: false, current_global_msg_num:0, local_msg_defs: HashMap::<u8, FieldDefinitionMap>::new(), num_records_read:0 };
+        state
+    }
+
+    pub fn print(&self) {
+        println!("Architecture Is Big Endian: {}", self.current_architecture);
+        println!("Current Global Msg Num: {}", self.current_global_msg_num);
+        for (local_msg_type, field_definitions) in &self.local_msg_defs {
+            println!("Local Message Type {}", local_msg_type);
+            for field_definition in field_definitions {
+                println!("Field Num {}: Size {} Base Type {:#x}", field_definition.field_def, field_definition.size, field_definition.base_type);
+            }
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -188,59 +274,6 @@ impl FitHeader {
         data_size = data_size | (self.header[HEADER_DATA_SIZE_2_OFFSET] as u32) << 16;
         data_size = data_size | (self.header[HEADER_DATA_SIZE_MSB_OFFSET] as u32) << 24;
         data_size
-    }
-}
-
-/// Encapsulates a custom field definition, as described by definition messages and used by data messages.
-#[derive(Debug, Default)]
-struct FieldDefinition {
-    field_def: u8,
-    size: u8,
-    base_type: u8
-}
-
-impl Ord for FieldDefinition {
-    fn cmp(&self, other: &Self) -> Ordering {
-        (self.field_def, &self.size, &self.base_type).cmp(&(other.field_def, &other.size, &other.base_type))
-    }
-}
-
-impl PartialOrd for FieldDefinition {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for FieldDefinition {
-    fn eq(&self, other: &Self) -> bool {
-        (self.field_def, &self.size) == (other.field_def, &other.size)
-    }
-}
-
-impl Eq for FieldDefinition { }
-
-#[derive(Debug, Default)]
-struct State {
-    current_architecture: bool, // 1 = big endian
-    current_global_msg_num: u16,
-    local_msg_defs: HashMap<u8, FieldDefinitionMap> // Describes the format of local message types
-}
-
-impl State {
-    pub fn new() -> Self {
-        let state = State{ current_architecture: false, current_global_msg_num:0, local_msg_defs: HashMap::<u8, FieldDefinitionMap>::new() };
-        state
-    }
-
-    pub fn print(&self) {
-        println!("Architecture Is Big Endian: {}", self.current_architecture);
-        println!("Current Global Msg Num: {}", self.current_global_msg_num);
-        for (local_msg_type, field_definitions) in &self.local_msg_defs {
-            println!("Local Message Type {}", local_msg_type);
-            for field_definition in field_definitions {
-                println!("Field Num {}: Size {} Base Type {:#x}", field_definition.field_def, field_definition.size, field_definition.base_type);
-            }
-        }
     }
 }
 
@@ -324,35 +357,38 @@ impl FitRecord {
         let msg_defs = state.local_msg_defs.get(&local_msg_type).unwrap();
 
         // Read data for each message definition.
-        let mut records = Vec::new();
+        let mut fields = Vec::new();
         for def in msg_defs.iter() {
+            let mut field = FieldValue::new();
             let data = read_n(reader, def.size as u64)?;
 
             match def.base_type {
-                0x00 => { let num = byte_array_to_num(data, 1, state.current_architecture); records.push(num); },
-                0x01 => { let num = byte_array_to_num(data, 1, state.current_architecture); records.push(num & 0x7f); },
-                0x02 => { let num = byte_array_to_num(data, 1, state.current_architecture); records.push(num); },
-                0x83 => { let num = byte_array_to_num(data, 2, state.current_architecture); records.push(num & 0x7FFF); },
-                0x84 => { let num = byte_array_to_num(data, 2, state.current_architecture); records.push(num); },
-                0x85 => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num & 0x7FFFFFFF); },
-                0x86 => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num); },
-                0x07 => { panic!("base type not implemented {:#x}", def.base_type); },
+                0x00 => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
+                0x01 => { field.num = byte_array_to_num(data, 1, state.current_architecture) & 0x7f; fields.push(field); },
+                0x02 => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
+                0x83 => { field.num = byte_array_to_num(data, 2, state.current_architecture) & 0x7FFF; fields.push(field); },
+                0x84 => { field.num = byte_array_to_num(data, 2, state.current_architecture); fields.push(field); },
+                0x85 => { field.num = byte_array_to_num(data, 4, state.current_architecture) & 0x7FFFFFFF; fields.push(field); },
+                0x86 => { field.num = byte_array_to_num(data, 4, state.current_architecture); fields.push(field); },
+                0x07 => { field.string = read_string(reader)?; },
                 0x88 => { panic!("base type not implemented {:#x}", def.base_type); },
                 0x89 => { panic!("base type not implemented {:#x}", def.base_type); },
-                0x0A => { let num = byte_array_to_num(data, 1, state.current_architecture); records.push(num); },
-                0x8B => { let num = byte_array_to_num(data, 2, state.current_architecture); records.push(num); },
-                0x8C => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num); },
+                0x0A => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
+                0x8B => { field.num = byte_array_to_num(data, 2, state.current_architecture); fields.push(field); },
+                0x8C => { field.num = byte_array_to_num(data, 4, state.current_architecture); fields.push(field); },
                 0x0D => { for i in 0..def.size {
-                        records.push(data[i as usize] as u64); 
+                        field.byte_array.push(data[i as usize]); 
                     }
+                    fields.push(field);
                  },
                 0x8E => { panic!("base type not implemented {:#x}", def.base_type); },
-                0x8F => { let num = byte_array_to_num(data, 8, state.current_architecture); records.push(num); },
+                0x8F => { field.num = byte_array_to_num(data, 8, state.current_architecture); fields.push(field); },
                 0x90 => { panic!("base type not implemented {:#x}", def.base_type); },
                 _ => { panic!("base type not implemented {:#x}", def.base_type); }
             }
         }
-        callback(state.current_global_msg_num, local_msg_type, records);
+        callback(state.current_global_msg_num, local_msg_type, fields);
+        state.num_records_read = state.num_records_read + 1;
 
         Ok(())
     }
@@ -362,7 +398,6 @@ impl FitRecord {
 
         // Compressed Timestamp Header.
         let time_offset = header_byte & 0x0f;
-        panic!("not implemented");
 
         // Read the data fields that follow.
         self.read_data_message(reader, header_byte, state, callback)?;
