@@ -76,7 +76,7 @@ pub const GLOBAL_MSG_NUM_SCHEDULE: u16 = 28;
 pub const GLOBAL_MSG_NUM_WEIGHT_SCALE: u16 = 30;
 
 type FieldDefinitionMap = Vec<FieldDefinition>;
-type Callback = fn(global_message_num: u16, data: Vec<u64>);
+type Callback = fn(global_message_num: u16, local_message_type: u8, data: Vec<u64>);
 
 pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     let mut global_msg_name_map = HashMap::<u16, String>::new();
@@ -223,13 +223,24 @@ impl Eq for FieldDefinition { }
 struct State {
     current_architecture: bool, // 1 = big endian
     current_global_msg_num: u16,
-    local_msg_defs: HashMap<u8, FieldDefinitionMap>
+    local_msg_defs: HashMap<u8, FieldDefinitionMap> // Describes the format of local message types
 }
 
 impl State {
     pub fn new() -> Self {
         let state = State{ current_architecture: false, current_global_msg_num:0, local_msg_defs: HashMap::<u8, FieldDefinitionMap>::new() };
         state
+    }
+
+    pub fn print(&self) {
+        println!("Architecture Is Big Endian: {}", self.current_architecture);
+        println!("Current Global Msg Num: {}", self.current_global_msg_num);
+        for (local_msg_type, field_definitions) in &self.local_msg_defs {
+            println!("Local Message Type {}", local_msg_type);
+            for field_definition in field_definitions {
+                println!("Field Num {}: Size {} Base Type {:#x}", field_definition.field_def, field_definition.size, field_definition.base_type);
+            }
+        }
     }
 }
 
@@ -264,6 +275,7 @@ impl FitRecord {
         // Read each field.
         let mut msg_defs: FieldDefinitionMap = FieldDefinitionMap::new();
         let num_fields = definition_header[DEF_MSG_NUM_FIELDS];
+        //println!("def msg: local msg type: {} current_global_msg_num: {} num_fields: {}", local_msg_type, state.current_global_msg_num, num_fields);
         for _i in 0..num_fields {
 
             // Read the field definition (3 bytes).
@@ -324,9 +336,9 @@ impl FitRecord {
                 0x84 => { let num = byte_array_to_num(data, 2, state.current_architecture); records.push(num); },
                 0x85 => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num & 0x7FFFFFFF); },
                 0x86 => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num); },
-                0x07 => { panic!("base type not implemented {}", def.base_type); },
-                0x88 => { panic!("base type not implemented {}", def.base_type); },
-                0x89 => { panic!("base type not implemented {}", def.base_type); },
+                0x07 => { panic!("base type not implemented {:#x}", def.base_type); },
+                0x88 => { panic!("base type not implemented {:#x}", def.base_type); },
+                0x89 => { panic!("base type not implemented {:#x}", def.base_type); },
                 0x0A => { let num = byte_array_to_num(data, 1, state.current_architecture); records.push(num); },
                 0x8B => { let num = byte_array_to_num(data, 2, state.current_architecture); records.push(num); },
                 0x8C => { let num = byte_array_to_num(data, 4, state.current_architecture); records.push(num); },
@@ -334,13 +346,13 @@ impl FitRecord {
                         records.push(data[i as usize] as u64); 
                     }
                  },
-                0x8E => { panic!("base type not implemented {}", def.base_type); },
+                0x8E => { panic!("base type not implemented {:#x}", def.base_type); },
                 0x8F => { let num = byte_array_to_num(data, 8, state.current_architecture); records.push(num); },
-                0x90 => { panic!("base type not implemented {}", def.base_type); },
-                _ => { panic!("base type not implemented {}", def.base_type); }
+                0x90 => { panic!("base type not implemented {:#x}", def.base_type); },
+                _ => { panic!("base type not implemented {:#x}", def.base_type); }
             }
         }
-        callback(state.current_global_msg_num, records);
+        callback(state.current_global_msg_num, local_msg_type, records);
 
         Ok(())
     }
@@ -350,6 +362,7 @@ impl FitRecord {
 
         // Compressed Timestamp Header.
         let time_offset = header_byte & 0x0f;
+        panic!("not implemented");
 
         // Read the data fields that follow.
         self.read_data_message(reader, header_byte, state, callback)?;
@@ -359,6 +372,11 @@ impl FitRecord {
 
     /// Assumes the buffer is pointing to the beginning of the normal message, reads the message.
     fn read_normal_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut State, callback: Callback) -> Result<()> {
+
+        // Reserve bit should be zero in normal messages.
+        if header_byte & RECORD_HDR_RESERVED != 0 {
+            panic!("reserve bit set");
+        }
 
         // Data or definition message?
         // A value of zero indicates a data message.
