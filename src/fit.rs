@@ -414,7 +414,7 @@ impl FitRecord {
                     0x84 => { field.num = byte_array_to_num(data, 2, state.current_architecture); fields.push(field); },
                     0x85 => { field.num = byte_array_to_num(data, 4, state.current_architecture) & 0x7FFFFFFF; fields.push(field); },
                     0x86 => { field.num = byte_array_to_num(data, 4, state.current_architecture); fields.push(field); },
-                    0x07 => { field.string = byte_array_to_string(data, def.size as usize); /* println!("{} {}", def.size, field.string); state.print(); */ },
+                    0x07 => { field.string = byte_array_to_string(data, def.size as usize); fields.push(field); /* println!("{} {}", def.size, field.string); state.print(); */ },
                     0x88 => { panic!("base type not implemented {:#x}", def.base_type); },
                     0x89 => { panic!("base type not implemented {:#x}", def.base_type); },
                     0x0A => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },

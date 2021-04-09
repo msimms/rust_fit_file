@@ -32,7 +32,12 @@ mod tests {
         }
 
         for field in fields {
-            print!("{} ", field.num);
+            if field.string.chars().count() > 0 {
+                print!("\"{}\" ", field.string);
+            }
+            else {
+                print!("{} ", field.num);
+            }
         }
         println!("");
     }
