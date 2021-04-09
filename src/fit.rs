@@ -46,6 +46,11 @@ const DEF_MSG_ARCHITECTURE: usize = 1; // 1 = Definition and Data Message are Bi
 const DEF_MSG_GLOBAL_MSG_NUM: usize = 2;
 const DEF_MSG_NUM_FIELDS: usize = 4;
 
+// Reserved field numbers.
+const FIELD_MSG_INDEX: u8 = 254;
+const FIELD_TIMESTAMP: u8 = 253;
+const FIELD_PART_INDEX: u8 = 250;
+
 const RECORD_HDR_NORMAL: u8 = 0x80;
 const RECORD_HDR_MSG_TYPE: u8 = 0x40;
 const RECORD_HDR_MSG_TYPE_SPECIFIC: u8 = 0x20;
@@ -120,6 +125,13 @@ fn read_u32<R: Read>(reader: &mut BufReader<R>, big_endian: bool) -> Result<u32>
     let bytes = read_n(reader, 4)?;
     let num = byte_array_to_num(bytes, 4, big_endian) as u32;
     Ok(num)
+}
+
+fn read_byte<R: Read>(reader: &mut BufReader<R>) -> Result<u8>
+{
+    let mut byte: [u8; 1] = [0; 1];
+    reader.read_exact(&mut byte)?;
+    Ok(byte[0])
 }
 
 fn read_string<R: Read>(reader: &mut BufReader<R>) -> Result<String>
@@ -323,11 +335,6 @@ impl FitRecord {
         state.current_architecture = definition_header[DEF_MSG_ARCHITECTURE] == 1;
         state.current_global_msg_num = byte_array_to_num(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.current_architecture) as u16;
 
-        // Read the timestamp.
-        if local_msg_type == 0 {
-            //state.timestamp = read_u32(reader, state.current_architecture)?;
-        }
-
         // Read each field.
         let mut msg_defs: FieldDefinitionMap = FieldDefinitionMap::new();
         let num_fields = definition_header[DEF_MSG_NUM_FIELDS];
@@ -335,16 +342,25 @@ impl FitRecord {
         for _i in 0..num_fields {
 
             // Read the field definition (3 bytes).
-            let mut field_def_bytes: [u8; 3] = [0; 3];
-            reader.read_exact(&mut field_def_bytes)?;
+            let field_num = read_byte(reader)?;
 
-            // Add the definition to the hash map.
-            let field_def = FieldDefinition { field_def:field_def_bytes[0], size:field_def_bytes[1], base_type:field_def_bytes[2] };
+            // Is this a special field, like a timestamp?
+            if field_num == FIELD_TIMESTAMP {
+                state.timestamp = read_u32(reader, state.current_architecture)?;
+            }
+            else {
+                // Read the rest of the field definition (2 bytes).
+                let mut field_def_bytes: [u8; 2] = [0; 2];
+                reader.read_exact(&mut field_def_bytes)?;
 
-            // Insert sorted.
-            match msg_defs.binary_search(&field_def) {
-                Ok(_pos) => {} // element already in vector @ `pos` 
-                Err(pos) => msg_defs.insert(pos, field_def),
+                // Add the definition to the hash map.
+                let field_def = FieldDefinition { field_def:field_num, size:field_def_bytes[0], base_type:field_def_bytes[1] };
+
+                // Insert sorted.
+                match msg_defs.binary_search(&field_def) {
+                    Ok(_pos) => {} // element already in vector @ `pos` 
+                    Err(pos) => msg_defs.insert(pos, field_def),
+                }
             }
         }
 
@@ -352,11 +368,10 @@ impl FitRecord {
         if header_byte & RECORD_HDR_MSG_TYPE_SPECIFIC != 0 {
 
             // Read the number of developer fields (1 byte).
-            let mut num_dev_fields: [u8; 1] = [0; 1];
-            reader.read_exact(&mut num_dev_fields)?;
+            let num_dev_fields = read_byte(reader)?;
 
             // Read each developer field.
-            for _i in 0..num_dev_fields[0] {
+            for _i in 0..num_dev_fields {
 
                 // Field definition (3 bytes).
                 let mut field_def_bytes: [u8; 3] = [0; 3];
@@ -393,7 +408,7 @@ impl FitRecord {
                 0x84 => { field.num = byte_array_to_num(data, 2, state.current_architecture); fields.push(field); },
                 0x85 => { field.num = byte_array_to_num(data, 4, state.current_architecture) & 0x7FFFFFFF; fields.push(field); },
                 0x86 => { field.num = byte_array_to_num(data, 4, state.current_architecture); fields.push(field); },
-                0x07 => { field.string = byte_array_to_string(data, def.size as usize); /* println!("{} {}", def.size, field.string); */ },
+                0x07 => { field.string = byte_array_to_string(data, def.size as usize); /* println!("{} {}", def.size, field.string); state.print(); */ },
                 0x88 => { panic!("base type not implemented {:#x}", def.base_type); },
                 0x89 => { panic!("base type not implemented {:#x}", def.base_type); },
                 0x0A => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
@@ -456,16 +471,15 @@ impl FitRecord {
     fn read<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState, callback: Callback) -> Result<()> {
 
         // The first byte is a bit field that tells us more about the record.
-        let mut header_byte: [u8; 1] = [0; 1];
-        reader.read_exact(&mut header_byte)?;
+        let header_byte = read_byte(reader)?;
 
         // Normal header or compressed timestamp header?
         // A value of zero indicates a normal header.
-        if header_byte[0] & RECORD_HDR_NORMAL != 0 {
-            self.read_compressed_timestamp_message(reader, header_byte[0], state, callback)?;
+        if header_byte & RECORD_HDR_NORMAL != 0 {
+            self.read_compressed_timestamp_message(reader, header_byte, state, callback)?;
         }
         else {
-            self.read_normal_message(reader, header_byte[0], state, callback)?;
+            self.read_normal_message(reader, header_byte, state, callback)?;
         }
 
         Ok(())
