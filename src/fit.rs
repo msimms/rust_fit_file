@@ -344,24 +344,17 @@ impl FitRecord {
             // Read the field definition (3 bytes).
             let field_num = read_byte(reader)?;
 
-            // Is this a special field, like a timestamp?
-            if field_num == FIELD_TIMESTAMP {
-                state.timestamp = read_u32(reader, state.current_architecture)?;
-            }
-            else {
-                // Read the rest of the field definition (2 bytes).
-                let mut field_def_bytes: [u8; 2] = [0; 2];
-                reader.read_exact(&mut field_def_bytes)?;
+            // Read the rest of the field definition (2 bytes).
+            let mut field_def_bytes: [u8; 2] = [0; 2];
+            reader.read_exact(&mut field_def_bytes)?;
 
-                // Add the definition to the hash map.
-                let field_def = FieldDefinition { field_def:field_num, size:field_def_bytes[0], base_type:field_def_bytes[1] };
+            // Add the definition to the hash map.
+            let field_def = FieldDefinition { field_def:field_num, size:field_def_bytes[0], base_type:field_def_bytes[1] };
 
-                // Insert sorted.
-                match msg_defs.binary_search(&field_def) {
-                    Ok(_pos) => {} // element already in vector @ `pos` 
-                    Err(pos) => msg_defs.insert(pos, field_def),
-                }
-            }
+            // Add the field definition to the message definition.
+            msg_defs.push(field_def);
+
+            //println!("Field Num: {} Field Bytes: {} Field Type: {}", field_num, field_def_bytes[0], field_def_bytes[1]);
         }
 
         // Is there any developer information in this record?
@@ -400,25 +393,39 @@ impl FitRecord {
             let mut field = FieldValue::new();
             let data = read_n(reader, def.size as u64)?;
 
-            match def.base_type {
-                0x00 => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
-                0x01 => { field.num = byte_array_to_num(data, 1, state.current_architecture) & 0x7f; fields.push(field); },
-                0x02 => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
-                0x83 => { field.num = byte_array_to_num(data, 2, state.current_architecture) & 0x7FFF; fields.push(field); },
-                0x84 => { field.num = byte_array_to_num(data, 2, state.current_architecture); fields.push(field); },
-                0x85 => { field.num = byte_array_to_num(data, 4, state.current_architecture) & 0x7FFFFFFF; fields.push(field); },
-                0x86 => { field.num = byte_array_to_num(data, 4, state.current_architecture); fields.push(field); },
-                0x07 => { field.string = byte_array_to_string(data, def.size as usize); /* println!("{} {}", def.size, field.string); state.print(); */ },
-                0x88 => { panic!("base type not implemented {:#x}", def.base_type); },
-                0x89 => { panic!("base type not implemented {:#x}", def.base_type); },
-                0x0A => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
-                0x8B => { field.num = byte_array_to_num(data, 2, state.current_architecture); fields.push(field); },
-                0x8C => { field.num = byte_array_to_num(data, 4, state.current_architecture); fields.push(field); },
-                0x0D => { field.byte_array = data; fields.push(field); },
-                0x8E => { field.num = byte_array_to_num(data, 8, state.current_architecture) & 0x7FFFFFFFFFFFFFFF; fields.push(field); },
-                0x8F => { field.num = byte_array_to_num(data, 8, state.current_architecture); fields.push(field); },
-                0x90 => { field.num = byte_array_to_num(data, 8, state.current_architecture); fields.push(field); },
-                _ => { panic!("base type not implemented {:#x}", def.base_type); }
+            // Is this a special field, like a timestamp?
+            if def.field_def == FIELD_MSG_INDEX {
+                panic!("Msg Index not implemented.");
+            }
+            else if def.field_def == FIELD_TIMESTAMP {
+                state.timestamp = byte_array_to_num(data, 4, state.current_architecture) as u32;
+            }
+            else if def.field_def == FIELD_PART_INDEX {
+                panic!("Part Index not implemented.");
+            }
+
+            // Normal field.
+            else {
+                match def.base_type {
+                    0x00 => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
+                    0x01 => { field.num = byte_array_to_num(data, 1, state.current_architecture) & 0x7f; fields.push(field); },
+                    0x02 => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
+                    0x83 => { field.num = byte_array_to_num(data, 2, state.current_architecture) & 0x7FFF; fields.push(field); },
+                    0x84 => { field.num = byte_array_to_num(data, 2, state.current_architecture); fields.push(field); },
+                    0x85 => { field.num = byte_array_to_num(data, 4, state.current_architecture) & 0x7FFFFFFF; fields.push(field); },
+                    0x86 => { field.num = byte_array_to_num(data, 4, state.current_architecture); fields.push(field); },
+                    0x07 => { field.string = byte_array_to_string(data, def.size as usize); /* println!("{} {}", def.size, field.string); state.print(); */ },
+                    0x88 => { panic!("base type not implemented {:#x}", def.base_type); },
+                    0x89 => { panic!("base type not implemented {:#x}", def.base_type); },
+                    0x0A => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
+                    0x8B => { field.num = byte_array_to_num(data, 2, state.current_architecture); fields.push(field); },
+                    0x8C => { field.num = byte_array_to_num(data, 4, state.current_architecture); fields.push(field); },
+                    0x0D => { field.byte_array = data; fields.push(field); },
+                    0x8E => { field.num = byte_array_to_num(data, 8, state.current_architecture) & 0x7FFFFFFFFFFFFFFF; fields.push(field); },
+                    0x8F => { field.num = byte_array_to_num(data, 8, state.current_architecture); fields.push(field); },
+                    0x90 => { field.num = byte_array_to_num(data, 8, state.current_architecture); fields.push(field); },
+                    _ => { panic!("base type not implemented {:#x}", def.base_type); }
+                }
             }
         }
         state.num_records_read = state.num_records_read + 1;
@@ -435,10 +442,10 @@ impl FitRecord {
         // Compressed Timestamp Header.
         let time_offset = (header_byte & 0x0f) as u32;
         if time_offset >= state.timestamp & 0x0000001F { // offset value is greater than least significant 5 bits of previous timestamp
-            state.timestamp = & 0xFFFFFFE0 + time_offset;
+            state.timestamp = (state.timestamp & 0xFFFFFFE0) + time_offset;
         }
         else {
-            state.timestamp = & 0xFFFFFFE0 + time_offset + (0x20 as u32);
+            state.timestamp = (state.timestamp & 0xFFFFFFE0) + time_offset + 0x00000020;
         }
 
         // Read the data fields that follow.
@@ -452,7 +459,7 @@ impl FitRecord {
 
         // Reserve bit should be zero in normal messages.
         if header_byte & RECORD_HDR_RESERVED != 0 {
-            panic!("reserve bit set");
+            //panic!("reserve bit set");
         }
 
         // Data or definition message?
