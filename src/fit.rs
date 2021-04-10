@@ -80,6 +80,19 @@ pub const GLOBAL_MSG_NUM_WORKOUT_STEP: u16 = 27;
 pub const GLOBAL_MSG_NUM_SCHEDULE: u16 = 28;
 pub const GLOBAL_MSG_NUM_WEIGHT_SCALE: u16 = 30;
 
+pub const FIT_SPORT_GENERIC: u8 = 0;
+pub const FIT_SPORT_RUNNING: u8 = 1;
+pub const FIT_SPORT_CYCLING: u8 = 2;
+pub const FIT_SPORT_TRANSITION: u8 = 3; // Mulitsport transition
+pub const FIT_SPORT_FITNESS_EQUIPMENT: u8 = 4;
+pub const FIT_SPORT_SWIMMING: u8 = 5;
+pub const FIT_SPORT_BASKETBALL: u8 = 6;
+pub const FIT_SPORT_SOCCER: u8 = 7;
+pub const FIT_SPORT_TENNIS: u8 = 8;
+pub const FIT_SPORT_AMERICAN_FOOTBALL: u8 = 9;
+pub const FIT_SPORT_TRAINING: u8 = 10;
+pub const FIT_SPORT_ALL: u8 = 254;
+
 type FieldDefinitionMap = Vec<FieldDefinition>;
 type Callback = fn(global_message_num: u16, local_message_type: u8, data: Vec<FieldValue>);
 
