@@ -226,6 +226,72 @@ pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     global_msg_name_map.insert(GLOBAL_MSG_NUM_WORKOUT_STEP, "Workout Step".to_string());
     global_msg_name_map.insert(GLOBAL_MSG_NUM_SCHEDULE, "Schedule".to_string());
     global_msg_name_map.insert(GLOBAL_MSG_NUM_WEIGHT_SCALE, "Weight Scale".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_COURSE, "Course".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_COURSE_POINT, "Course Point".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_TOTALS, "Totals".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_ACTIVITY, "Activity".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SOFTWARE, "Software".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_FILE_CAPABILITIES, "File Capabilities".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_MESG_CAPABILITIES, "Message Capabilities".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_FIELD_CAPABILITIES, "Field Capabilities".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_FILE_CREATOR, "File Creator".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_BLOOD_PRESSURE, "Blood Pressure".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SPEED_ZONE, "Speed Zone".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_MONITORING, "Monitoring".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_TRAINING_FILE, "Training File".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_HRV, "HRV".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_ANT_RX, "ANT RX".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_ANT_TX, "ANT TX".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_ANT_CHANNEL_ID, "ANT Channel ID".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_LENGTH, "Length".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_MONITORING_INFO, "Monitoring Info".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_PAD, "Pad".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SLAVE_DEVICE, "Slave Device".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_CONNECTIVITY, "Connectivity".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_WEATHER_CONDITIONS, "Weather".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_WEATHER_ALERT, "Weather Alert".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_CADENCE_ZONE, "Cadence Zone".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_HR, "HR".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SEGMENT_LAP, "Segment Lap".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_MEMO_GLOB, "Memo Glob".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SEGMENT_ID, "Segment ID".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SEGMENT_LEADERBOARD_ENTRY, "Segment Leaderboard Entry".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SEGMENT_POINT, "Segment Point".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SEGMENT_FILE, "Segment File".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_WORKOUT_SESSION, "Workout Session".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_WATCHFACE_SETTINGS, "Watch Face Settings".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_GPS_METADATA, "GPS".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_CAMERA_EVENT, "Camera Event".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_TIMESTAMP_CORRELATION, "Timestamp Correlation".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_GYROSCOPE_DATA, "Cyroscope Data".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_ACCELEROMETER_DATA, "Accelerometer Data".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_THREE_D_SENSOR_CALIBRATION, "3D Sensor Calibration".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_VIDEO_FRAME, "Video Frame".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_OBDII_DATA, "OBDII Data".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_NMEA_SENTENCE, "NMEA Sentence".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_AVIATION_ATTITUDE, "Aviation Attitude".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_VIDEO, "Video".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_VIDEO_TITLE, "Video Title".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_VIDEO_DESCRIPTION, "Video Description".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_VIDEO_CLIP, "Video Clip".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_OHR_SETTINGS, "OHR Settings".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_EXD_SCREEN_CONFIGURATION, "EXD Screen Configuration".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_EXD_DATA_FIELD_CONFIGURATION, "EXD Data Field Configuration".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_EXD_DATA_CONCEPT_CONFIGURATION, "EXD Data Concept Configuration".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_FIELD_DESCRIPTION, "Field Description".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_DEVELOPER_DATA_ID, "Developer Data ID".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_MAGNETOMETER_DATA, "Magnetometer Data".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_BAROMETER_DATA, "Barometer Data".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_ONE_D_SENSOR_CALIBRATION, "1D Sensor Calibration".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_SET, "Set".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_STRESS_LEVEL, "Stress Level".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_DIVE_SETTINGS, "Dive Settings".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_DIVE_GAS, "Dive Gas".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_DIVE_ALARM, "Dive Alarm".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_EXERCISE_TITLE, "Exercise Title".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_DIVE_SUMMARY, "Dive Summary".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_JUMP, "Jump".to_string());
+    global_msg_name_map.insert(GLOBAL_MSG_NUM_CLIMB_PRO, "Climb Pro".to_string());
     global_msg_name_map
 }
 
@@ -241,7 +307,8 @@ fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec
 fn read_u32<R: Read>(reader: &mut BufReader<R>, big_endian: bool) -> Result<u32>
 {
     let bytes = read_n(reader, 4)?;
-    let num = byte_array_to_num(bytes, 4, big_endian) as u32;
+    let num = byte_array_to_int(bytes, 4, big_endian) as u32;
+
     Ok(num)
 }
 
@@ -249,6 +316,7 @@ fn read_byte<R: Read>(reader: &mut BufReader<R>) -> Result<u8>
 {
     let mut byte: [u8; 1] = [0; 1];
     reader.read_exact(&mut byte)?;
+
     Ok(byte[0])
 }
 
@@ -280,7 +348,7 @@ fn byte_array_to_string(bytes: Vec<u8>, num_bytes: usize) -> String {
     result
 }
 
-fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 {
+fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 {
     if num_bytes == 1 {
         return bytes[0] as u64;
     }
@@ -303,15 +371,32 @@ fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 
     num
 }
 
+fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> f64 {
+    if num_bytes == 1 {
+        return bytes[0] as f64;
+    }
+
+    let num = 0.0;
+
+    num
+}
+
+fn print_byte_array(bytes: Vec<u8>) {
+    for byte in bytes {
+        print!("{:#04x} ", byte);
+    }
+}
+
 pub struct FieldValue {
-    pub num: u64,
+    pub num_int: u64,
+    pub num_float: f64,
     pub byte_array: Vec<u8>,
     pub string: String
 }
 
 impl FieldValue {
     pub fn new() -> Self {
-        let state = FieldValue{ num: 0, byte_array: Vec::<u8>::new(), string: String::new() };
+        let state = FieldValue{ num_int: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
         state
     }
 }
@@ -451,28 +536,26 @@ impl FitRecord {
 
         // Make a note of the Architecture and Global Message Number.
         state.current_architecture = definition_header[DEF_MSG_ARCHITECTURE] == 1;
-        state.current_global_msg_num = byte_array_to_num(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.current_architecture) as u16;
+        state.current_global_msg_num = byte_array_to_int(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.current_architecture) as u16;
 
         // Read each field.
         let mut msg_defs: FieldDefinitionMap = FieldDefinitionMap::new();
         let num_fields = definition_header[DEF_MSG_NUM_FIELDS];
-        //println!("def msg: local msg type: {} current_global_msg_num: {} num_fields: {}", local_msg_type, state.current_global_msg_num, num_fields);
+        //println!("Message Definition: global message num: {} local message type: {} number of fields: {}", state.current_global_msg_num, local_msg_type, num_fields);
         for _i in 0..num_fields {
 
             // Read the field definition (3 bytes).
             let field_num = read_byte(reader)?;
-
-            // Read the rest of the field definition (2 bytes).
-            let mut field_def_bytes: [u8; 2] = [0; 2];
-            reader.read_exact(&mut field_def_bytes)?;
+            let field_bytes = read_byte(reader)?;
+            let field_type = read_byte(reader)?;
 
             // Add the definition to the hash map.
-            let field_def = FieldDefinition { field_def:field_num, size:field_def_bytes[0], base_type:field_def_bytes[1] };
+            let field_def = FieldDefinition { field_def:field_num, size:field_bytes, base_type:field_type };
 
             // Add the field definition to the message definition.
             msg_defs.push(field_def);
 
-            //println!("Field Num: {} Field Bytes: {} Field Type: {}", field_num, field_def_bytes[0], field_def_bytes[1]);
+            //println!("Field Num: {} Field Bytes: {} Field Type: {:#x}", field_num, field_bytes, field_type);
         }
 
         // Is there any developer information in this record?
@@ -501,6 +584,7 @@ impl FitRecord {
 
         // Local message type.
         let local_msg_type = header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
+        //println!("data msg: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
 
         // Retrieve the field definitions based on the message type.
         let msg_defs = state.local_msg_defs.get(&local_msg_type).unwrap();
@@ -513,36 +597,36 @@ impl FitRecord {
 
             // Is this a special field, like a timestamp?
             if def.field_def == FIELD_MSG_INDEX {
-                panic!("Msg Index not implemented.");
+                //panic!("Message Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
             }
             else if def.field_def == FIELD_TIMESTAMP {
-                state.timestamp = byte_array_to_num(data, 4, state.current_architecture) as u32;
+                state.timestamp = byte_array_to_int(data, 4, state.current_architecture) as u32;
             }
             else if def.field_def == FIELD_PART_INDEX {
-                panic!("Part Index not implemented.");
+                panic!("Part Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
             }
 
             // Normal field.
             else {
                 match def.base_type {
-                    0x00 => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
-                    0x01 => { field.num = byte_array_to_num(data, 1, state.current_architecture) & 0x7f; fields.push(field); },
-                    0x02 => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
-                    0x83 => { field.num = byte_array_to_num(data, 2, state.current_architecture) & 0x7FFF; fields.push(field); },
-                    0x84 => { field.num = byte_array_to_num(data, 2, state.current_architecture); fields.push(field); },
-                    0x85 => { field.num = byte_array_to_num(data, 4, state.current_architecture) & 0x7FFFFFFF; fields.push(field); },
-                    0x86 => { field.num = byte_array_to_num(data, 4, state.current_architecture); fields.push(field); },
-                    0x07 => { field.string = byte_array_to_string(data, def.size as usize); fields.push(field); /* println!("{} {}", def.size, field.string); state.print(); */ },
-                    0x88 => { panic!("base type not implemented {:#x}", def.base_type); },
-                    0x89 => { panic!("base type not implemented {:#x}", def.base_type); },
-                    0x0A => { field.num = byte_array_to_num(data, 1, state.current_architecture); fields.push(field); },
-                    0x8B => { field.num = byte_array_to_num(data, 2, state.current_architecture); fields.push(field); },
-                    0x8C => { field.num = byte_array_to_num(data, 4, state.current_architecture); fields.push(field); },
+                    0x00 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); fields.push(field); },
+                    0x01 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture) & 0x7f; fields.push(field); },
+                    0x02 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); fields.push(field); },
+                    0x83 => { field.num_int = byte_array_to_int(data, 2, state.current_architecture) & 0x7FFF; fields.push(field); },
+                    0x84 => { field.num_int = byte_array_to_int(data, 2, state.current_architecture); fields.push(field); },
+                    0x85 => { field.num_int = byte_array_to_int(data, 4, state.current_architecture) & 0x7FFFFFFF; fields.push(field); },
+                    0x86 => { field.num_int = byte_array_to_int(data, 4, state.current_architecture); fields.push(field); },
+                    0x07 => { field.string = byte_array_to_string(data, def.size as usize); /*println!("{} {}", def.size, field.string);*/ fields.push(field); },
+                    0x88 => { field.num_float = byte_array_to_float(data, 4, state.current_architecture); },
+                    0x89 => { field.num_float = byte_array_to_float(data, 4, state.current_architecture); },
+                    0x0A => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); fields.push(field); },
+                    0x8B => { field.num_int = byte_array_to_int(data, 2, state.current_architecture); fields.push(field); },
+                    0x8C => { field.num_int = byte_array_to_int(data, 4, state.current_architecture); fields.push(field); },
                     0x0D => { field.byte_array = data; fields.push(field); },
-                    0x8E => { field.num = byte_array_to_num(data, 8, state.current_architecture) & 0x7FFFFFFFFFFFFFFF; fields.push(field); },
-                    0x8F => { field.num = byte_array_to_num(data, 8, state.current_architecture); fields.push(field); },
-                    0x90 => { field.num = byte_array_to_num(data, 8, state.current_architecture); fields.push(field); },
-                    _ => { panic!("base type not implemented {:#x}", def.base_type); }
+                    0x8E => { field.num_int = byte_array_to_int(data, 8, state.current_architecture) & 0x7FFFFFFFFFFFFFFF; fields.push(field); },
+                    0x8F => { field.num_int = byte_array_to_int(data, 8, state.current_architecture); fields.push(field); },
+                    0x90 => { field.num_int = byte_array_to_int(data, 8, state.current_architecture); fields.push(field); },
+                    _ => { panic!("Base Type not implemented {:#x}", def.base_type); }
                 }
             }
         }
@@ -577,7 +661,7 @@ impl FitRecord {
 
         // Reserve bit should be zero in normal messages.
         if header_byte & RECORD_HDR_RESERVED != 0 {
-            //panic!("reserve bit set");
+            //panic!("Reserve bit set");
         }
 
         // Data or definition message?
@@ -597,6 +681,7 @@ impl FitRecord {
 
         // The first byte is a bit field that tells us more about the record.
         let header_byte = read_byte(reader)?;
+        //println!("Header Byte: {:#04x}", header_byte);
 
         // Normal header or compressed timestamp header?
         // A value of zero indicates a normal header.

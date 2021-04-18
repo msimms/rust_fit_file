@@ -36,14 +36,14 @@ mod tests {
                 print!("\"{}\" ", field.string);
             }
             else {
-                print!("{} ", field.num);
+                print!("{} ", field.num_int);
             }
         }
         println!("");
     }
 
     #[test]
-    fn file1_run() {
+    fn file1_zwift() {
         let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let fit = crate::fit::read(&mut reader, callback);
@@ -57,8 +57,22 @@ mod tests {
     }
 
     #[test]
-    fn file2_run() {
+    fn file2_bike() {
         let file = std::fs::File::open("tests/20191117_bike_wahoo_elemnt.fit").unwrap();
+        let mut reader = std::io::BufReader::new(file);
+        let fit = crate::fit::read(&mut reader, callback);
+
+        match fit {
+            Ok(fit2) => {
+                fit2.header.print();
+            }
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn file3_swim() {
+        let file = std::fs::File::open("tests/20200529_short_ocean_swim.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let fit = crate::fit::read(&mut reader, callback);
 
