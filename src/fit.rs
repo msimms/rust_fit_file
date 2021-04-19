@@ -199,7 +199,7 @@ pub const FIT_SPORT_FLOOR_CLIMBING: u8 = 48;
 pub const FIT_SPORT_DIVING: u8 = 53;
 pub const FIT_SPORT_ALL: u8 = 254;
 
-type Callback = fn(global_message_num: u16, local_message_type: u8, data: Vec<FieldValue>);
+type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, data: Vec<FieldValue>);
 
 pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     let mut global_msg_name_map = HashMap::<u16, String>::new();
@@ -471,8 +471,8 @@ impl GlobalMessage {
     }
 
     /// Creates an entry in the local message map for the a local message with the specified number.
+    /// If the message definition already exists then replace it.
     fn insert_msg_def(&mut self, local_msg_type: u8, local_msg_def: FieldDefinitionList) {
-        // If the message definition already exists then replace it.
         if self.local_msg_defs.contains_key(&local_msg_type) {
             self.local_msg_defs.remove(&local_msg_type);
         }
@@ -622,7 +622,6 @@ impl FitRecord {
         // Read each field.
         let mut msg_defs: FieldDefinitionList = FieldDefinitionList::new();
         let num_fields = definition_header[DEF_MSG_NUM_FIELDS];
-        //println!("Message Definition: global message num: {} local message type: {} number of fields: {}", global_msg_num, local_msg_type, num_fields);
         for _i in 0..num_fields {
 
             // Read the field definition (3 bytes).
@@ -630,10 +629,8 @@ impl FitRecord {
             let field_bytes = read_byte(reader)?;
             let field_type = read_byte(reader)?;
 
-            // Add the definition to the hash map.
+            // Add the definition.
             let field_def = FieldDefinition { field_def:field_num, size:field_bytes, base_type:field_type };
-
-            // Add the field definition to the message definition.
             msg_defs.push(field_def);
         }
 
@@ -651,16 +648,16 @@ impl FitRecord {
                 let field_bytes = read_byte(reader)?;
                 let field_type = read_byte(reader)?;
 
-                // Add the definition to the hash map.
+                // Add the definition.
                 let field_def = FieldDefinition { field_def:field_num, size:field_bytes, base_type:field_type };
-
-                // Add the field definition to the message definition.
                 msg_defs.push(field_def);
             }
         }
 
         // Associate the field definitions with the local message type.
         state.insert_local_msg_def(global_msg_num, local_msg_type, msg_defs);
+
+        //println!("Message Definition: global message num: {} local message type: {} number of fields: {}", global_msg_num, local_msg_type, num_fields);
         //state.print();
 
         Ok(())
@@ -677,7 +674,6 @@ impl FitRecord {
         else {
             local_msg_type = header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
         }
-        //println!("Data Message: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
 
         // Retrieve the field definitions based on the message type.
         let msg_defs = state.retrieve_msg_def(state.current_global_msg_num, local_msg_type);
@@ -690,13 +686,10 @@ impl FitRecord {
 
             // Read the number of bytes prescribed by the field definition.
             let data = read_n(reader, def.size as u64)?;
-            /*for byte in &data {
-                print!("{:#x} ", byte);
-            }*/
 
             // Is this a special field, like a timestamp?
             if def.field_def == FIELD_MSG_INDEX {
-                //panic!("Message Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
+                panic!("Message Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
             }
             else if def.field_def == FIELD_TIMESTAMP {
                 state.timestamp = byte_array_to_int(data, 4, state.is_big_endian) as u32;
@@ -729,11 +722,10 @@ impl FitRecord {
                 }
             }
         }
-        //println!("");
         state.num_records_read = state.num_records_read + 1;
 
         // Tell the people.
-        callback(state.current_global_msg_num, local_msg_type, fields);
+        callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields);
 
         Ok(())
     }
@@ -761,7 +753,7 @@ impl FitRecord {
 
         // Reserve bit should be zero in normal messages.
         if header_byte & RECORD_HDR_RESERVED != 0 {
-            //panic!("Reserve bit set");
+            panic!("Reserve bit set");
         }
 
         // Data or definition message?
@@ -808,7 +800,22 @@ impl Fit {
         fit
     }
 
-    fn check_crc(&self) {
+    fn check_crc(&self, crc: u16, byte: u8) {
+        let crc_table: [u16; 16] = [
+            0x0000, 0xCC01, 0xD801, 0x1400, 0xF001, 0x3C00, 0x2800, 0xE401,
+            0xA001, 0x6C00, 0x7800, 0xB401, 0x5000, 0x9C01, 0x8801, 0x4400
+        ];
+
+        // Compute checksum of lower four bits of byte.
+        let mut crc2 = crc;
+        let mut tmp: u16 = crc_table[(crc2 & 0xf) as usize];
+        crc2 = (crc2 >> 4) & 0x0fff;
+        crc2 = crc2 ^ tmp ^ crc_table[(byte & 0xf) as usize];
+
+        // Now compute checksum of upper four bits of byte.
+        tmp = crc_table[(crc2 & 0xf) as usize];
+        crc2 = (crc2 >> 4) & 0x0fff;
+        crc2 = crc2 ^ tmp ^ crc_table[((byte >> 4) & 0xf) as usize];
     }
 
     /// Reads the FIT data from the buffer.
@@ -829,7 +836,7 @@ impl Fit {
             }
 
             // Read the CRC.
-            self.check_crc();
+            //self.check_crc();
         }
 
         Ok(())
