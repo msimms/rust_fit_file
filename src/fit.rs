@@ -25,6 +25,7 @@ use std::io::Read;
 use std::io::BufReader;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::io::{Error};
 
 const HEADER_FILE_SIZE_OFFSET: usize = 0;
 const HEADER_PROTOCOL_VERSION_OFFSET: usize = 1;
@@ -526,9 +527,9 @@ impl FitState {
             .or_insert(GlobalMessage::new());
     }
 
-    fn retrieve_msg_def(&self, global_msg_num: u16, local_msg_type: u8) -> FieldDefinitionList {
-        let global_msg_map = self.global_msg_map.get(&global_msg_num).unwrap();
-        global_msg_map.retrieve_msg_def(local_msg_type).unwrap().to_vec()
+    fn retrieve_msg_def(&self, global_msg_num: u16, local_msg_type: u8) -> Option<&FieldDefinitionList> {
+        let global_msg_map = self.global_msg_map.get(&global_msg_num)?;
+        global_msg_map.retrieve_msg_def(local_msg_type)
     }
 }
 
@@ -676,56 +677,66 @@ impl FitRecord {
         }
 
         // Retrieve the field definitions based on the message type.
+        let mut new_timestamp = state.timestamp;
         let msg_defs = state.retrieve_msg_def(state.current_global_msg_num, local_msg_type);
+        match msg_defs {
+            Some(msg_defs) => {
 
-        // Read data for each message definition.
-        let mut fields = Vec::new();
-        for def in msg_defs.iter() {
+                // Read data for each message definition.
+                let mut fields = Vec::new();
+                for def in msg_defs.iter() {
 
-            let mut field = FieldValue::new();
+                    let mut field = FieldValue::new();
 
-            // Read the number of bytes prescribed by the field definition.
-            let data = read_n(reader, def.size as u64)?;
+                    // Read the number of bytes prescribed by the field definition.
+                    let data = read_n(reader, def.size as u64)?;
 
-            // Is this a special field, like a timestamp?
-            if def.field_def == FIELD_MSG_INDEX {
-                panic!("Message Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
-            }
-            else if def.field_def == FIELD_TIMESTAMP {
-                state.timestamp = byte_array_to_int(data, 4, state.is_big_endian) as u32;
-            }
-            else if def.field_def == FIELD_PART_INDEX {
-                panic!("Part Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
-            }
+                    // Is this a special field, like a timestamp?
+                    if def.field_def == FIELD_MSG_INDEX {
+                        panic!("Message Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
+                    }
+                    else if def.field_def == FIELD_TIMESTAMP {
+                        new_timestamp = byte_array_to_int(data, 4, state.is_big_endian) as u32;
+                    }
+                    else if def.field_def == FIELD_PART_INDEX {
+                        panic!("Part Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
+                    }
 
-            // Normal field.
-            else {
-                match def.base_type {
-                    0x00 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x01 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian) & 0x7f; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x02 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x83 => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian) & 0x7FFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x84 => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x85 => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian) & 0x7FFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x86 => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x07 => { field.string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; /*println!("{} {}", def.size, field.string);*/ fields.push(field); },
-                    0x88 => { field.num_float = byte_array_to_float(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
-                    0x89 => { field.num_float = byte_array_to_float(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
-                    0x0A => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x8B => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x8C => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x0D => { field.byte_array = data; field.field_type = FieldType::FieldTypeByteArray; fields.push(field); },
-                    0x8E => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian) & 0x7FFFFFFFFFFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x8F => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x90 => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    _ => { panic!("Base Type not implemented {:#x}", def.base_type); }
+                    // Normal field.
+                    else {
+                        match def.base_type {
+                            0x00 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x01 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian) & 0x7f; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x02 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x83 => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian) & 0x7FFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x84 => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x85 => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian) & 0x7FFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x86 => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x07 => { field.string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; /*println!("{} {}", def.size, field.string);*/ fields.push(field); },
+                            0x88 => { field.num_float = byte_array_to_float(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
+                            0x89 => { field.num_float = byte_array_to_float(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
+                            0x0A => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x8B => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x8C => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x0D => { field.byte_array = data; field.field_type = FieldType::FieldTypeByteArray; fields.push(field); },
+                            0x8E => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian) & 0x7FFFFFFFFFFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x8F => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x90 => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            _ => { panic!("Base Type not implemented {:#x}", def.base_type); }
+                        }
+                    }
                 }
-            }
-        }
-        state.num_records_read = state.num_records_read + 1;
+                state.num_records_read = state.num_records_read + 1;
+                state.timestamp = new_timestamp;
 
-        // Tell the people.
-        callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields);
+                // Tell the people.
+                callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields);
+            },
+            None    => {
+                let e = Error::new(std::io::ErrorKind::Other, "oh no!");
+                return Err(e);
+            },
+        }
 
         Ok(())
     }
