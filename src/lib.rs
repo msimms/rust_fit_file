@@ -32,11 +32,12 @@ mod tests {
         }
 
         for field in fields {
-            if field.string.chars().count() > 0 {
-                print!("\"{}\" ", field.string);
-            }
-            else {
-                print!("{} ", field.num_int);
+            match field.field_type {
+                crate::fit::FieldType::FieldTypeNotSet => { print!("[not set] "); },
+                crate::fit::FieldType::FieldTypeInt => { print!("{} ", field.num_int); },
+                crate::fit::FieldType::FieldTypeFloat => { print!("{} ", field.num_float); },
+                crate::fit::FieldType::FieldTypeByteArray => {},
+                crate::fit::FieldType::FieldTypeStr => { print!("\"{}\" ", field.string); },
             }
         }
         println!("");

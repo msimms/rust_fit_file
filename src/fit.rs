@@ -55,7 +55,8 @@ const RECORD_HDR_NORMAL: u8 = 0x80;
 const RECORD_HDR_MSG_TYPE: u8 = 0x40;
 const RECORD_HDR_MSG_TYPE_SPECIFIC: u8 = 0x20;
 const RECORD_HDR_RESERVED: u8 = 0x10;
-const RECORD_HDR_LOCAL_MSG_TYPE: u8 = 0x0f;
+const RECORD_HDR_LOCAL_MSG_TYPE: u8 = 0x07;
+const RECORD_HDR_LOCAL_MSG_TYPE_COMPRESSED: u8 = 0x60;
 
 pub const GLOBAL_MSG_NUM_FILE_ID: u16 = 0;
 pub const GLOBAL_MSG_NUM_CAPABILITIES: u16 = 1;
@@ -368,6 +369,7 @@ fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 
             offset = offset + 8;
         }
     }
+
     num
 }
 
@@ -375,10 +377,16 @@ fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> f6
     if num_bytes == 1 {
         return bytes[0] as f64;
     }
+    else if num_bytes == 4 {
+        let bytes = [0, 0 , 0, 0];
+        return f32::from_bits(u32::from_be_bytes(bytes)) as f64;
+    }
+    else if num_bytes == 8 {
+        let bytes = [0, 0, 0, 0, 0, 0, 0, 0];
+        return f64::from_bits(u64::from_be_bytes(bytes)) as f64;
+    }
 
-    let num = 0.0;
-
-    num
+    0.0
 }
 
 fn print_byte_array(bytes: Vec<u8>) {
@@ -387,7 +395,16 @@ fn print_byte_array(bytes: Vec<u8>) {
     }
 }
 
+pub enum FieldType {
+    FieldTypeNotSet,
+    FieldTypeInt,
+    FieldTypeFloat,
+    FieldTypeByteArray,
+    FieldTypeStr
+}
+
 pub struct FieldValue {
+    pub field_type: FieldType,
     pub num_int: u64,
     pub num_float: f64,
     pub byte_array: Vec<u8>,
@@ -396,7 +413,7 @@ pub struct FieldValue {
 
 impl FieldValue {
     pub fn new() -> Self {
-        let state = FieldValue{ num_int: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
+        let state = FieldValue{ field_type: FieldType::FieldTypeNotSet, num_int: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
         state
     }
 }
@@ -583,8 +600,14 @@ impl FitRecord {
     fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback) -> Result<()> {
 
         // Local message type.
-        let local_msg_type = header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
-        //println!("data msg: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
+        let local_msg_type;
+        if header_byte & RECORD_HDR_NORMAL != 0 {
+            local_msg_type = (header_byte & RECORD_HDR_LOCAL_MSG_TYPE_COMPRESSED) >> 5;
+        }
+        else {
+            local_msg_type = header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
+        }
+        //println!("Data Message: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
 
         // Retrieve the field definitions based on the message type.
         let msg_defs = state.local_msg_defs.get(&local_msg_type).unwrap();
@@ -592,6 +615,7 @@ impl FitRecord {
         // Read data for each message definition.
         let mut fields = Vec::new();
         for def in msg_defs.iter() {
+
             let mut field = FieldValue::new();
             let data = read_n(reader, def.size as u64)?;
 
@@ -609,23 +633,23 @@ impl FitRecord {
             // Normal field.
             else {
                 match def.base_type {
-                    0x00 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); fields.push(field); },
-                    0x01 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture) & 0x7f; fields.push(field); },
-                    0x02 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); fields.push(field); },
-                    0x83 => { field.num_int = byte_array_to_int(data, 2, state.current_architecture) & 0x7FFF; fields.push(field); },
-                    0x84 => { field.num_int = byte_array_to_int(data, 2, state.current_architecture); fields.push(field); },
-                    0x85 => { field.num_int = byte_array_to_int(data, 4, state.current_architecture) & 0x7FFFFFFF; fields.push(field); },
-                    0x86 => { field.num_int = byte_array_to_int(data, 4, state.current_architecture); fields.push(field); },
-                    0x07 => { field.string = byte_array_to_string(data, def.size as usize); /*println!("{} {}", def.size, field.string);*/ fields.push(field); },
-                    0x88 => { field.num_float = byte_array_to_float(data, 4, state.current_architecture); },
-                    0x89 => { field.num_float = byte_array_to_float(data, 4, state.current_architecture); },
-                    0x0A => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); fields.push(field); },
-                    0x8B => { field.num_int = byte_array_to_int(data, 2, state.current_architecture); fields.push(field); },
-                    0x8C => { field.num_int = byte_array_to_int(data, 4, state.current_architecture); fields.push(field); },
-                    0x0D => { field.byte_array = data; fields.push(field); },
-                    0x8E => { field.num_int = byte_array_to_int(data, 8, state.current_architecture) & 0x7FFFFFFFFFFFFFFF; fields.push(field); },
-                    0x8F => { field.num_int = byte_array_to_int(data, 8, state.current_architecture); fields.push(field); },
-                    0x90 => { field.num_int = byte_array_to_int(data, 8, state.current_architecture); fields.push(field); },
+                    0x00 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x01 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture) & 0x7f; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x02 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x83 => { field.num_int = byte_array_to_int(data, 2, state.current_architecture) & 0x7FFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x84 => { field.num_int = byte_array_to_int(data, 2, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x85 => { field.num_int = byte_array_to_int(data, 4, state.current_architecture) & 0x7FFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x86 => { field.num_int = byte_array_to_int(data, 4, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x07 => { field.string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; /*println!("{} {}", def.size, field.string);*/ fields.push(field); },
+                    0x88 => { field.num_float = byte_array_to_float(data, 4, state.current_architecture); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
+                    0x89 => { field.num_float = byte_array_to_float(data, 8, state.current_architecture); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
+                    0x0A => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x8B => { field.num_int = byte_array_to_int(data, 2, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x8C => { field.num_int = byte_array_to_int(data, 4, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x0D => { field.byte_array = data; field.field_type = FieldType::FieldTypeByteArray; fields.push(field); },
+                    0x8E => { field.num_int = byte_array_to_int(data, 8, state.current_architecture) & 0x7FFFFFFFFFFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x8F => { field.num_int = byte_array_to_int(data, 8, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x90 => { field.num_int = byte_array_to_int(data, 8, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
                     _ => { panic!("Base Type not implemented {:#x}", def.base_type); }
                 }
             }
