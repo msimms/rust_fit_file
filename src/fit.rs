@@ -459,12 +459,7 @@ impl GlobalMessage {
         msg
     }
 
-    pub fn new_with_def(local_msg_type: u8, local_msg_def: FieldDefinitionList) -> Self {
-        let mut msg = GlobalMessage{ local_msg_defs: HashMap::<u8, FieldDefinitionList>::new() };
-        msg.local_msg_defs.insert(local_msg_type, local_msg_def);
-        msg
-    }
-
+    /// For debugging purposes.
     fn print(&self) {
         for (local_msg_type, local_msg_def) in &self.local_msg_defs {
             println!("   Local Message Type {}:", local_msg_type);
@@ -475,12 +470,16 @@ impl GlobalMessage {
         }
     }
 
+    /// Creates an entry in the local message map for the a local message with the specified number.
     fn insert_msg_def(&mut self, local_msg_type: u8, local_msg_def: FieldDefinitionList) {
-        if !self.local_msg_defs.contains_key(&local_msg_type) {
-            self.local_msg_defs.insert(local_msg_type, local_msg_def);
+        // If the message definition already exists then replace it.
+        if self.local_msg_defs.contains_key(&local_msg_type) {
+            self.local_msg_defs.remove(&local_msg_type);
         }
+        self.local_msg_defs.insert(local_msg_type, local_msg_def);
     }
 
+    /// Retrieves the local message with the specified number.
     fn retrieve_msg_def(&self, local_msg_type: u8) -> Option<&FieldDefinitionList> {
         self.local_msg_defs.get(&local_msg_type)
     }
@@ -502,6 +501,7 @@ impl FitState {
         state
     }
 
+    /// For debugging purposes.
     fn print(&self) {
         println!("----------------------------------------");
         println!("Architecture Is Big Endian: {}", self.is_big_endian);
@@ -513,8 +513,11 @@ impl FitState {
         }
     }
 
+    /// Creates an entry in the global message hash map for the specified message number.
     fn insert_global_msg(&mut self, global_msg_num: u16) {
-        self.global_msg_map.insert(global_msg_num, GlobalMessage::new());
+        if !self.global_msg_map.contains_key(&global_msg_num) {
+            self.global_msg_map.insert(global_msg_num, GlobalMessage::new());
+        }
     }
 
     fn insert_local_msg_def(&mut self, global_msg_num: u16, local_msg_type: u8, local_msg_def: FieldDefinitionList) {
@@ -609,9 +612,9 @@ impl FitRecord {
         reader.read_exact(&mut definition_header)?;
 
         // Make a note of the Architecture and Global Message Number.
-        state.is_big_endian = definition_header[DEF_MSG_ARCHITECTURE] == 1;
         let global_msg_num = byte_array_to_int(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.is_big_endian) as u16;
         state.current_global_msg_num = global_msg_num;
+        state.is_big_endian = definition_header[DEF_MSG_ARCHITECTURE] == 1;
 
         // Make sure we have an entry in the hash map for this global message. This will do nothing if it already exists.
         state.insert_global_msg(global_msg_num);
@@ -643,9 +646,16 @@ impl FitRecord {
             // Read each developer field.
             for _i in 0..num_dev_fields {
 
-                // Field definition (3 bytes).
-                let mut field_def_bytes: [u8; 3] = [0; 3];
-                reader.read_exact(&mut field_def_bytes)?;
+                // Read the field definition (3 bytes).
+                let field_num = read_byte(reader)?;
+                let field_bytes = read_byte(reader)?;
+                let field_type = read_byte(reader)?;
+
+                // Add the definition to the hash map.
+                let field_def = FieldDefinition { field_def:field_num, size:field_bytes, base_type:field_type };
+
+                // Add the field definition to the message definition.
+                msg_defs.push(field_def);
             }
         }
 
@@ -680,6 +690,9 @@ impl FitRecord {
 
             // Read the number of bytes prescribed by the field definition.
             let data = read_n(reader, def.size as u64)?;
+            /*for byte in &data {
+                print!("{:#x} ", byte);
+            }*/
 
             // Is this a special field, like a timestamp?
             if def.field_def == FIELD_MSG_INDEX {
@@ -716,6 +729,7 @@ impl FitRecord {
                 }
             }
         }
+        //println!("");
         state.num_records_read = state.num_records_read + 1;
 
         // Tell the people.
