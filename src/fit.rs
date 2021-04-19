@@ -26,6 +26,7 @@ use std::io::BufReader;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::{Error};
+use std::convert::TryInto;
 
 const HEADER_FILE_SIZE_OFFSET: usize = 0;
 const HEADER_PROTOCOL_VERSION_OFFSET: usize = 1;
@@ -378,12 +379,12 @@ fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, _big_endian: bool) -> f
         return bytes[0] as f64;
     }
     else if num_bytes == 4 {
-        let bytes = [0, 0 , 0, 0];
-        return f32::from_bits(u32::from_be_bytes(bytes)) as f64;
+        let byte_array = bytes.try_into().unwrap_or_else(|bytes: Vec<u8>| panic!("Expected a Vec of length {} but it was {}", 4, bytes.len()));
+        return f32::from_bits(u32::from_be_bytes(byte_array)) as f64;
     }
     else if num_bytes == 8 {
-        let bytes = [0, 0, 0, 0, 0, 0, 0, 0];
-        return f64::from_bits(u64::from_be_bytes(bytes)) as f64;
+        let byte_array = bytes.try_into().unwrap_or_else(|bytes: Vec<u8>| panic!("Expected a Vec of length {} but it was {}", 8, bytes.len()));
+        return f64::from_bits(u64::from_be_bytes(byte_array)) as f64;
     }
 
     0.0
