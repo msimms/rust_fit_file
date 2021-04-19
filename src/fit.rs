@@ -55,7 +55,7 @@ const RECORD_HDR_NORMAL: u8 = 0x80;
 const RECORD_HDR_MSG_TYPE: u8 = 0x40;
 const RECORD_HDR_MSG_TYPE_SPECIFIC: u8 = 0x20;
 const RECORD_HDR_RESERVED: u8 = 0x10;
-const RECORD_HDR_LOCAL_MSG_TYPE: u8 = 0x07;
+const RECORD_HDR_LOCAL_MSG_TYPE: u8 = 0x0f;
 const RECORD_HDR_LOCAL_MSG_TYPE_COMPRESSED: u8 = 0x60;
 
 pub const GLOBAL_MSG_NUM_FILE_ID: u16 = 0;
@@ -199,7 +199,6 @@ pub const FIT_SPORT_FLOOR_CLIMBING: u8 = 48;
 pub const FIT_SPORT_DIVING: u8 = 53;
 pub const FIT_SPORT_ALL: u8 = 254;
 
-type FieldDefinitionMap = Vec<FieldDefinition>;
 type Callback = fn(global_message_num: u16, local_message_type: u8, data: Vec<FieldValue>);
 
 pub fn init_global_msg_name_map() -> HashMap<u16, String> {
@@ -373,7 +372,7 @@ fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 
     num
 }
 
-fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> f64 {
+fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, _big_endian: bool) -> f64 {
     if num_bytes == 1 {
         return bytes[0] as f64;
     }
@@ -419,7 +418,7 @@ impl FieldValue {
 }
 
 /// Encapsulates a custom field definition, as described by definition messages and used by data messages.
-#[derive(Debug, Default)]
+#[derive(Copy, Clone, Debug, Default)]
 struct FieldDefinition {
     field_def: u8,
     size: u8,
@@ -446,34 +445,91 @@ impl PartialEq for FieldDefinition {
 
 impl Eq for FieldDefinition { }
 
+type FieldDefinitionList = Vec<FieldDefinition>;
+
+/// Describes a global message that was defined in the FIT file.
+#[derive(Debug, Default)]
+struct GlobalMessage {
+    local_msg_defs: HashMap<u8, FieldDefinitionList>, // Describes the format of local messages, key is the local message type
+}
+
+impl GlobalMessage {
+    pub fn new() -> Self {
+        let msg = GlobalMessage{ local_msg_defs: HashMap::<u8, FieldDefinitionList>::new() };
+        msg
+    }
+
+    pub fn new_with_def(local_msg_type: u8, local_msg_def: FieldDefinitionList) -> Self {
+        let mut msg = GlobalMessage{ local_msg_defs: HashMap::<u8, FieldDefinitionList>::new() };
+        msg.local_msg_defs.insert(local_msg_type, local_msg_def);
+        msg
+    }
+
+    fn print(&self) {
+        for (local_msg_type, local_msg_def) in &self.local_msg_defs {
+            println!("   Local Message Type {}:", local_msg_type);
+
+            for field_definition in local_msg_def {
+                println!("      Field Num {}: Size {} Base Type {:#x}", field_definition.field_def, field_definition.size, field_definition.base_type);
+            }
+        }
+    }
+
+    fn insert_msg_def(&mut self, local_msg_type: u8, local_msg_def: FieldDefinitionList) {
+        if !self.local_msg_defs.contains_key(&local_msg_type) {
+            self.local_msg_defs.insert(local_msg_type, local_msg_def);
+        }
+    }
+
+    fn retrieve_msg_def(&self, local_msg_type: u8) -> Option<&FieldDefinitionList> {
+        self.local_msg_defs.get(&local_msg_type)
+    }
+}
+
+/// Contains everything we need to remember about the state of the file parsing operation.
 #[derive(Debug, Default)]
 struct FitState {
-    current_architecture: bool, // 1 = big endian
-    current_global_msg_num: u16,
-    local_msg_defs: HashMap<u8, FieldDefinitionMap>, // Describes the format of local message types
+    is_big_endian: bool, // 1 = big endian
+    current_global_msg_num: u16, // Most recently defined global message number
+    global_msg_map: HashMap<u16, GlobalMessage>, // Associates global messages with local message definitions, key is the global message number
     timestamp: u32, // For use with the compressed timestamp header
     num_records_read: usize // Total number of records read, for debugging purposes
 }
 
 impl FitState {
     pub fn new() -> Self {
-        let state = FitState{ current_architecture: false, current_global_msg_num:0, local_msg_defs: HashMap::<u8, FieldDefinitionMap>::new(), timestamp: 0, num_records_read:0 };
+        let state = FitState{ is_big_endian: false, current_global_msg_num: 0, global_msg_map: HashMap::<u16, GlobalMessage>::new(), timestamp: 0, num_records_read:0 };
         state
     }
 
-    pub fn print(&self) {
-        println!("Architecture Is Big Endian: {}", self.current_architecture);
-        println!("Current Global Msg Num: {}", self.current_global_msg_num);
+    fn print(&self) {
+        println!("----------------------------------------");
+        println!("Architecture Is Big Endian: {}", self.is_big_endian);
+        println!("Current Global Message Number: {}", self.current_global_msg_num);
 
-        for (local_msg_type, field_definitions) in &self.local_msg_defs {
-            println!("Local Message Type {}", local_msg_type);
-            for field_definition in field_definitions {
-                println!("Field Num {}: Size {} Base Type {:#x}", field_definition.field_def, field_definition.size, field_definition.base_type);
-            }
+        for (global_msg_num, global_msg_def) in &self.global_msg_map {
+            println!("Global Message Number {}:", global_msg_num);
+            global_msg_def.print();
         }
+    }
+
+    fn insert_global_msg(&mut self, global_msg_num: u16) {
+        self.global_msg_map.insert(global_msg_num, GlobalMessage::new());
+    }
+
+    fn insert_local_msg_def(&mut self, global_msg_num: u16, local_msg_type: u8, local_msg_def: FieldDefinitionList) {
+        self.global_msg_map.entry(global_msg_num)
+            .and_modify(|e| { e.insert_msg_def(local_msg_type, local_msg_def) })
+            .or_insert(GlobalMessage::new());
+    }
+
+    fn retrieve_msg_def(&self, global_msg_num: u16, local_msg_type: u8) -> FieldDefinitionList {
+        let global_msg_map = self.global_msg_map.get(&global_msg_num).unwrap();
+        global_msg_map.retrieve_msg_def(local_msg_type).unwrap().to_vec()
     }
 }
 
+/// Parses and validates the FIT file header.
 #[derive(Debug, Default)]
 pub struct FitHeader {
     pub header: Vec<u8>,
@@ -527,6 +583,7 @@ impl FitHeader {
     }
 }
 
+/// Parses FIT file records.
 #[derive(Debug, Default)]
 struct FitRecord {
 }
@@ -552,13 +609,17 @@ impl FitRecord {
         reader.read_exact(&mut definition_header)?;
 
         // Make a note of the Architecture and Global Message Number.
-        state.current_architecture = definition_header[DEF_MSG_ARCHITECTURE] == 1;
-        state.current_global_msg_num = byte_array_to_int(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.current_architecture) as u16;
+        state.is_big_endian = definition_header[DEF_MSG_ARCHITECTURE] == 1;
+        let global_msg_num = byte_array_to_int(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.is_big_endian) as u16;
+        state.current_global_msg_num = global_msg_num;
+
+        // Make sure we have an entry in the hash map for this global message. This will do nothing if it already exists.
+        state.insert_global_msg(global_msg_num);
 
         // Read each field.
-        let mut msg_defs: FieldDefinitionMap = FieldDefinitionMap::new();
+        let mut msg_defs: FieldDefinitionList = FieldDefinitionList::new();
         let num_fields = definition_header[DEF_MSG_NUM_FIELDS];
-        //println!("Message Definition: global message num: {} local message type: {} number of fields: {}", state.current_global_msg_num, local_msg_type, num_fields);
+        //println!("Message Definition: global message num: {} local message type: {} number of fields: {}", global_msg_num, local_msg_type, num_fields);
         for _i in 0..num_fields {
 
             // Read the field definition (3 bytes).
@@ -571,8 +632,6 @@ impl FitRecord {
 
             // Add the field definition to the message definition.
             msg_defs.push(field_def);
-
-            //println!("Field Num: {} Field Bytes: {} Field Type: {:#x}", field_num, field_bytes, field_type);
         }
 
         // Is there any developer information in this record?
@@ -591,7 +650,8 @@ impl FitRecord {
         }
 
         // Associate the field definitions with the local message type.
-        state.local_msg_defs.insert(local_msg_type, msg_defs);
+        state.insert_local_msg_def(global_msg_num, local_msg_type, msg_defs);
+        //state.print();
 
         Ok(())
     }
@@ -599,7 +659,7 @@ impl FitRecord {
     /// Assumes the buffer is pointing to the beginning of the data message, reads the message.
     fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback) -> Result<()> {
 
-        // Local message type.
+        // Local message type. The local message type is stored differently for compressed data headers.
         let local_msg_type;
         if header_byte & RECORD_HDR_NORMAL != 0 {
             local_msg_type = (header_byte & RECORD_HDR_LOCAL_MSG_TYPE_COMPRESSED) >> 5;
@@ -610,13 +670,15 @@ impl FitRecord {
         //println!("Data Message: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
 
         // Retrieve the field definitions based on the message type.
-        let msg_defs = state.local_msg_defs.get(&local_msg_type).unwrap();
+        let msg_defs = state.retrieve_msg_def(state.current_global_msg_num, local_msg_type);
 
         // Read data for each message definition.
         let mut fields = Vec::new();
         for def in msg_defs.iter() {
 
             let mut field = FieldValue::new();
+
+            // Read the number of bytes prescribed by the field definition.
             let data = read_n(reader, def.size as u64)?;
 
             // Is this a special field, like a timestamp?
@@ -624,7 +686,7 @@ impl FitRecord {
                 //panic!("Message Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
             }
             else if def.field_def == FIELD_TIMESTAMP {
-                state.timestamp = byte_array_to_int(data, 4, state.current_architecture) as u32;
+                state.timestamp = byte_array_to_int(data, 4, state.is_big_endian) as u32;
             }
             else if def.field_def == FIELD_PART_INDEX {
                 panic!("Part Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
@@ -633,23 +695,23 @@ impl FitRecord {
             // Normal field.
             else {
                 match def.base_type {
-                    0x00 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x01 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture) & 0x7f; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x02 => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x83 => { field.num_int = byte_array_to_int(data, 2, state.current_architecture) & 0x7FFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x84 => { field.num_int = byte_array_to_int(data, 2, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x85 => { field.num_int = byte_array_to_int(data, 4, state.current_architecture) & 0x7FFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x86 => { field.num_int = byte_array_to_int(data, 4, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x00 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x01 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian) & 0x7f; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x02 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x83 => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian) & 0x7FFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x84 => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x85 => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian) & 0x7FFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x86 => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
                     0x07 => { field.string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; /*println!("{} {}", def.size, field.string);*/ fields.push(field); },
-                    0x88 => { field.num_float = byte_array_to_float(data, 4, state.current_architecture); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
-                    0x89 => { field.num_float = byte_array_to_float(data, 8, state.current_architecture); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
-                    0x0A => { field.num_int = byte_array_to_int(data, 1, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x8B => { field.num_int = byte_array_to_int(data, 2, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x8C => { field.num_int = byte_array_to_int(data, 4, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x88 => { field.num_float = byte_array_to_float(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
+                    0x89 => { field.num_float = byte_array_to_float(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
+                    0x0A => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x8B => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x8C => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
                     0x0D => { field.byte_array = data; field.field_type = FieldType::FieldTypeByteArray; fields.push(field); },
-                    0x8E => { field.num_int = byte_array_to_int(data, 8, state.current_architecture) & 0x7FFFFFFFFFFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x8F => { field.num_int = byte_array_to_int(data, 8, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                    0x90 => { field.num_int = byte_array_to_int(data, 8, state.current_architecture); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x8E => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian) & 0x7FFFFFFFFFFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x8F => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                    0x90 => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
                     _ => { panic!("Base Type not implemented {:#x}", def.base_type); }
                 }
             }
@@ -720,6 +782,7 @@ impl FitRecord {
     }
 }
 
+/// Parses a FIT file.
 #[derive(Debug, Default)]
 pub struct Fit {
     pub header: FitHeader
