@@ -297,6 +297,63 @@ pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     global_msg_name_map
 }
 
+pub fn init_sport_name_map() -> HashMap<u8, String> {
+    let mut sport_name_map = HashMap::<u8, String>::new();
+
+    sport_name_map.insert(FIT_SPORT_GENERIC, "Generic".to_string());
+    sport_name_map.insert(FIT_SPORT_RUNNING, "Running".to_string());
+    sport_name_map.insert(FIT_SPORT_CYCLING, "Cycling".to_string());
+    sport_name_map.insert(FIT_SPORT_TRANSITION, "Transition".to_string());
+    sport_name_map.insert(FIT_SPORT_FITNESS_EQUIPMENT, "Fitness Equipment".to_string());
+    sport_name_map.insert(FIT_SPORT_SWIMMING, "Swimming".to_string());
+    sport_name_map.insert(FIT_SPORT_BASKETBALL, "Basketball".to_string());
+    sport_name_map.insert(FIT_SPORT_SOCCER, "Soccer".to_string());
+    sport_name_map.insert(FIT_SPORT_TENNIS, "Tennis".to_string());
+    sport_name_map.insert(FIT_SPORT_AMERICAN_FOOTBALL, "American Football".to_string());
+    sport_name_map.insert(FIT_SPORT_TRAINING, "Training".to_string());
+    sport_name_map.insert(FIT_SPORT_WALKING, "Walking".to_string());
+    sport_name_map.insert(FIT_SPORT_CROSS_COUNTRY_SKIING, "Cross Country Skiing".to_string());
+    sport_name_map.insert(FIT_SPORT_ALPINE_SKIING, "Alpine Skiing".to_string());
+    sport_name_map.insert(FIT_SPORT_SNOWBOARDING, "Snowboarding".to_string());
+    sport_name_map.insert(FIT_SPORT_ROWING, "Rowing".to_string());
+    sport_name_map.insert(FIT_SPORT_MOUNTAINEERING, "Mountaineering".to_string());
+    sport_name_map.insert(FIT_SPORT_HIKING, "Hiking".to_string());
+    sport_name_map.insert(FIT_SPORT_MULTISPORT, "Multisport".to_string());
+    sport_name_map.insert(FIT_SPORT_PADDLING, "Paddling".to_string());
+    sport_name_map.insert(FIT_SPORT_FLYING, "Flying".to_string());
+    sport_name_map.insert(FIT_SPORT_E_BIKING, "E-Biking".to_string());
+    sport_name_map.insert(FIT_SPORT_MOTORCYCLING, "Motorcycling".to_string());
+    sport_name_map.insert(FIT_SPORT_BOATING, "Boating".to_string());
+    sport_name_map.insert(FIT_SPORT_DRIVING, "Driving".to_string());
+    sport_name_map.insert(FIT_SPORT_GOLF, "Golf".to_string());
+    sport_name_map.insert(FIT_SPORT_HANG_GLIDING, "Hang Gliding".to_string());
+    sport_name_map.insert(FIT_SPORT_HORSEBACK_RIDING, "Horseback Riding".to_string());
+    sport_name_map.insert(FIT_SPORT_HUNTING, "Hunting".to_string());
+    sport_name_map.insert(FIT_SPORT_FISHING, "Fishing".to_string());
+    sport_name_map.insert(FIT_SPORT_INLINE_SKATING, "Inline Skating".to_string());
+    sport_name_map.insert(FIT_SPORT_ROCK_CLIMBING, "Rock Climbing".to_string());
+    sport_name_map.insert(FIT_SPORT_SAILING, "Sailing".to_string());
+    sport_name_map.insert(FIT_SPORT_ICE_SKATING, "Ice Skating".to_string());
+    sport_name_map.insert(FIT_SPORT_SKY_DIVING, "Sky Diving".to_string());
+    sport_name_map.insert(FIT_SPORT_SNOWSHOEING, "Snowshoeing".to_string());
+    sport_name_map.insert(FIT_SPORT_SNOWMOBILING, "Snowmobiling".to_string());
+    sport_name_map.insert(FIT_SPORT_STAND_UP_PADDLEBOARDING, "Paddleboarding".to_string());
+    sport_name_map.insert(FIT_SPORT_SURFING, "Surfing".to_string());
+    sport_name_map.insert(FIT_SPORT_WAKEBOARDING, "Wakeboarding".to_string());
+    sport_name_map.insert(FIT_SPORT_WATER_SKIING, "Water Skiing".to_string());
+    sport_name_map.insert(FIT_SPORT_KAYAKING, "Kayaking".to_string());
+    sport_name_map.insert(FIT_SPORT_RAFTING, "Rafting".to_string());
+    sport_name_map.insert(FIT_SPORT_WINDSURFING, "Windsurfng".to_string());
+    sport_name_map.insert(FIT_SPORT_KITESURFING, "Kitesurfing".to_string());
+    sport_name_map.insert(FIT_SPORT_TACTICAL, "Tactical".to_string());
+    sport_name_map.insert(FIT_SPORT_JUMPMASTER, "Jumpmaster".to_string());
+    sport_name_map.insert(FIT_SPORT_BOXING, "Boxing".to_string());
+    sport_name_map.insert(FIT_SPORT_FLOOR_CLIMBING, "Floor Climbing".to_string());
+    sport_name_map.insert(FIT_SPORT_DIVING, "Diving".to_string());
+    sport_name_map.insert(FIT_SPORT_ALL, "All".to_string());
+    sport_name_map
+}
+
 fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec<u8> >
 {
     let mut buf = vec![];
