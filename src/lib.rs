@@ -23,7 +23,7 @@ mod fit;
 
 #[cfg(test)]
 mod tests {
-    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>) {
+    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>, field_defs: crate::fit::FieldDefinitionList) {
         let global_message_names = crate::fit::init_global_msg_name_map();
 
         match global_message_names.get(&global_message_num) {

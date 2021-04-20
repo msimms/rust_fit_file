@@ -201,7 +201,7 @@ pub const FIT_SPORT_FLOOR_CLIMBING: u8 = 48;
 pub const FIT_SPORT_DIVING: u8 = 53;
 pub const FIT_SPORT_ALL: u8 = 254;
 
-type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, data: Vec<FieldValue>);
+type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, data: Vec<FieldValue>, field_defs: FieldDefinitionList);
 
 pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     let mut global_msg_name_map = HashMap::<u16, String>::new();
@@ -523,10 +523,10 @@ impl FieldValue {
 
 /// Encapsulates a custom field definition, as described by definition messages and used by data messages.
 #[derive(Copy, Clone, Debug, Default)]
-struct FieldDefinition {
-    field_def: u8,
-    size: u8,
-    base_type: u8
+pub struct FieldDefinition {
+    pub field_def: u8,
+    pub size: u8,
+    pub base_type: u8
 }
 
 impl Ord for FieldDefinition {
@@ -549,7 +549,7 @@ impl PartialEq for FieldDefinition {
 
 impl Eq for FieldDefinition { }
 
-type FieldDefinitionList = Vec<FieldDefinition>;
+pub type FieldDefinitionList = Vec<FieldDefinition>;
 
 /// Describes a global message that was defined in the FIT file.
 #[derive(Debug, Default)]
@@ -595,13 +595,12 @@ struct FitState {
     is_big_endian: bool, // 1 = big endian
     current_global_msg_num: u16, // Most recently defined global message number
     global_msg_map: HashMap<u16, GlobalMessage>, // Associates global messages with local message definitions, key is the global message number
-    timestamp: u32, // For use with the compressed timestamp header
-    num_records_read: usize // Total number of records read, for debugging purposes
+    timestamp: u32 // For use with the compressed timestamp header
 }
 
 impl FitState {
     pub fn new() -> Self {
-        let state = FitState{ is_big_endian: false, current_global_msg_num: 0, global_msg_map: HashMap::<u16, GlobalMessage>::new(), timestamp: 0, num_records_read:0 };
+        let state = FitState{ is_big_endian: false, current_global_msg_num: 0, global_msg_map: HashMap::<u16, GlobalMessage>::new(), timestamp: 0 };
         state
     }
 
@@ -624,12 +623,14 @@ impl FitState {
         }
     }
 
+    /// Adds the given global message/local message combo to the hash map.
     fn insert_local_msg_def(&mut self, global_msg_num: u16, local_msg_type: u8, local_msg_def: FieldDefinitionList) {
         self.global_msg_map.entry(global_msg_num)
             .and_modify(|e| { e.insert_msg_def(local_msg_type, local_msg_def) })
             .or_insert(GlobalMessage::new());
     }
 
+    /// Given a global message number and local message number, retrieves the corresonding field definitions.s
     fn retrieve_msg_def(&self, global_msg_num: u16, local_msg_type: u8) -> Option<&FieldDefinitionList> {
         let global_msg_map = self.global_msg_map.get(&global_msg_num)?;
         global_msg_map.retrieve_msg_def(local_msg_type)
@@ -779,15 +780,17 @@ impl FitRecord {
             local_msg_type = header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
         }
 
-        // Retrieve the field definitions based on the message type.
+        // The timestamp may get updated.
         let mut new_timestamp = state.timestamp;
-        let msg_defs = state.retrieve_msg_def(state.current_global_msg_num, local_msg_type);
-        match msg_defs {
-            Some(msg_defs) => {
+
+        // Retrieve the field definitions based on the message type.
+        let field_defs = state.retrieve_msg_def(state.current_global_msg_num, local_msg_type);
+        match field_defs {
+            Some(field_defs) => {
 
                 // Read data for each message definition.
                 let mut fields = Vec::new();
-                for def in msg_defs.iter() {
+                for def in field_defs.iter() {
 
                     let mut field = FieldValue::new();
 
@@ -829,17 +832,18 @@ impl FitRecord {
                         }
                     }
                 }
-                state.num_records_read = state.num_records_read + 1;
-                state.timestamp = new_timestamp;
 
                 // Tell the people.
-                callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields);
+                callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields, field_defs.to_vec());
             },
             None    => {
                 let e = Error::new(std::io::ErrorKind::Other, "Message definition not found.");
                 return Err(e);
             },
         }
+
+        // Store the (possibly) updated timestamp.
+        state.timestamp = new_timestamp;
 
         Ok(())
     }
