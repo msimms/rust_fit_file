@@ -734,7 +734,7 @@ impl FitRecord {
                 callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields);
             },
             None    => {
-                let e = Error::new(std::io::ErrorKind::Other, "oh no!");
+                let e = Error::new(std::io::ErrorKind::Other, "Message definition not found.");
                 return Err(e);
             },
         }
@@ -746,7 +746,7 @@ impl FitRecord {
     fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback) -> Result<()> {
 
         // Compressed Timestamp Header.
-        let time_offset = (header_byte & 0x0f) as u32;
+        let time_offset = (header_byte & 0x1f) as u32;
         if time_offset >= state.timestamp & 0x0000001F { // offset value is greater than least significant 5 bits of previous timestamp
             state.timestamp = (state.timestamp & 0xFFFFFFE0) + time_offset;
         }
