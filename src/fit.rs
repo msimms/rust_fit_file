@@ -374,6 +374,46 @@ fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, is_big_endian: bool) -> u
     num
 }
 
+fn byte_array_to_uint64(bytes: Vec<u8>, is_big_endian: bool) -> u64 {
+    let temp = byte_array_to_int(bytes, 8, is_big_endian);
+    temp
+}
+
+fn byte_array_to_uint32(bytes: Vec<u8>, is_big_endian: bool) -> u32 {
+    let temp = byte_array_to_int(bytes, 4, is_big_endian) as u32;
+    temp
+}
+
+fn byte_array_to_uint16(bytes: Vec<u8>, is_big_endian: bool) -> u16 {
+    let temp = byte_array_to_int(bytes, 2, is_big_endian) as u16;
+    temp
+}
+
+fn byte_array_to_uint8(bytes: Vec<u8>, is_big_endian: bool) -> u8 {
+    let temp = byte_array_to_int(bytes, 1, is_big_endian) as u8;
+    temp
+}
+
+fn byte_array_to_sint64(bytes: Vec<u8>, is_big_endian: bool) -> i64 {
+    let temp = byte_array_to_int(bytes, 8, is_big_endian) as i64;
+    temp
+}
+
+fn byte_array_to_sint32(bytes: Vec<u8>, is_big_endian: bool) -> i32 {
+    let temp = byte_array_to_int(bytes, 4, is_big_endian) as i32;
+    temp
+}
+
+fn byte_array_to_sint16(bytes: Vec<u8>, is_big_endian: bool) -> i16 {
+    let temp = byte_array_to_int(bytes, 2, is_big_endian) as i16;
+    temp
+}
+
+fn byte_array_to_sint8(bytes: Vec<u8>, is_big_endian: bool) -> i8 {
+    let temp = byte_array_to_int(bytes, 1, is_big_endian) as i8;
+    temp
+}
+
 fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, _is_big_endian: bool) -> f64 {
     if num_bytes == 1 {
         return bytes[0] as f64;
@@ -397,16 +437,18 @@ fn print_byte_array(bytes: Vec<u8>) {
 }
 
 pub enum FieldType {
-    FieldTypeNotSet,
-    FieldTypeInt,
-    FieldTypeFloat,
-    FieldTypeByteArray,
-    FieldTypeStr
+    FieldTypeNotSet, // Value not set
+    FieldTypeUInt, // Value is an unsigned integer
+    FieldTypeSInt, // Value is a signed integer
+    FieldTypeFloat, // Value is a float
+    FieldTypeByteArray, // Value is a byte array
+    FieldTypeStr // Value is a tring
 }
 
 pub struct FieldValue {
     pub field_type: FieldType,
-    pub num_int: u64,
+    pub num_uint: u64,
+    pub num_sint: i64,
     pub num_float: f64,
     pub byte_array: Vec<u8>,
     pub string: String
@@ -414,7 +456,7 @@ pub struct FieldValue {
 
 impl FieldValue {
     pub fn new() -> Self {
-        let state = FieldValue{ field_type: FieldType::FieldTypeNotSet, num_int: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
+        let state = FieldValue{ field_type: FieldType::FieldTypeNotSet, num_uint: 0, num_sint: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
         state
     }
 }
@@ -706,23 +748,23 @@ impl FitRecord {
                     // Normal field.
                     else {
                         match def.base_type {
-                            0x00 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x01 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian) & 0x7f; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x02 => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x83 => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian) & 0x7FFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x84 => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x85 => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian) & 0x7FFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x86 => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x00 => { field.num_uint = byte_array_to_uint8(data, state.is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; fields.push(field); },
+                            0x01 => { field.num_sint = byte_array_to_sint8(data, state.is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; fields.push(field); },
+                            0x02 => { field.num_uint = byte_array_to_uint8(data, state.is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; fields.push(field); },
+                            0x83 => { field.num_sint = byte_array_to_sint16(data, state.is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; fields.push(field); },
+                            0x84 => { field.num_uint = byte_array_to_uint16(data, state.is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; fields.push(field); },
+                            0x85 => { field.num_sint = byte_array_to_sint32(data, state.is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; fields.push(field); },
+                            0x86 => { field.num_uint = byte_array_to_uint32(data, state.is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; fields.push(field); },
                             0x07 => { field.string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; fields.push(field); },
                             0x88 => { field.num_float = byte_array_to_float(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
                             0x89 => { field.num_float = byte_array_to_float(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
-                            0x0A => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x8B => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x8C => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x0A => { field.num_uint = byte_array_to_uint8(data, state.is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; fields.push(field); },
+                            0x8B => { field.num_uint = byte_array_to_uint16(data, state.is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; fields.push(field); },
+                            0x8C => { field.num_uint = byte_array_to_uint32(data, state.is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; fields.push(field); },
                             0x0D => { field.byte_array = data; field.field_type = FieldType::FieldTypeByteArray; fields.push(field); },
-                            0x8E => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian) & 0x7FFFFFFFFFFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x8F => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x90 => { field.num_int = byte_array_to_int(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
+                            0x8E => { field.num_sint = byte_array_to_sint64(data, state.is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; fields.push(field); },
+                            0x8F => { field.num_uint = byte_array_to_uint64(data, state.is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; fields.push(field); },
+                            0x90 => { field.num_uint = byte_array_to_uint64(data, state.is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; fields.push(field); },
                             _ => { panic!("Base Type not implemented {:#x}", def.base_type); }
                         }
                     }

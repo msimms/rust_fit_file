@@ -34,7 +34,8 @@ mod tests {
         for field in fields {
             match field.field_type {
                 crate::fit::FieldType::FieldTypeNotSet => { print!("[not set] "); },
-                crate::fit::FieldType::FieldTypeInt => { print!("{} ", field.num_int); },
+                crate::fit::FieldType::FieldTypeUInt => { print!("{} ", field.num_uint); },
+                crate::fit::FieldType::FieldTypeSInt => { print!("{} ", field.num_sint); },
                 crate::fit::FieldType::FieldTypeFloat => { print!("{} ", field.num_float); },
                 crate::fit::FieldType::FieldTypeByteArray => {},
                 crate::fit::FieldType::FieldTypeStr => { print!("\"{}\" ", field.string); },
