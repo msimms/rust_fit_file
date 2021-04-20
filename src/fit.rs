@@ -431,46 +431,55 @@ fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, is_big_endian: bool) -> u
     num
 }
 
+/// Utility function for converting a byte array to an u64
 fn byte_array_to_uint64(bytes: Vec<u8>, is_big_endian: bool) -> u64 {
     let temp = byte_array_to_int(bytes, 8, is_big_endian);
     temp
 }
 
+/// Utility function for converting a byte array to an u32
 fn byte_array_to_uint32(bytes: Vec<u8>, is_big_endian: bool) -> u32 {
     let temp = byte_array_to_int(bytes, 4, is_big_endian) as u32;
     temp
 }
 
+/// Utility function for converting a byte array to an u16
 fn byte_array_to_uint16(bytes: Vec<u8>, is_big_endian: bool) -> u16 {
     let temp = byte_array_to_int(bytes, 2, is_big_endian) as u16;
     temp
 }
 
+/// Utility function for converting a byte array to an u8
 fn byte_array_to_uint8(bytes: Vec<u8>, is_big_endian: bool) -> u8 {
     let temp = byte_array_to_int(bytes, 1, is_big_endian) as u8;
     temp
 }
 
+/// Utility function for converting a byte array to an i64
 fn byte_array_to_sint64(bytes: Vec<u8>, is_big_endian: bool) -> i64 {
     let temp = byte_array_to_int(bytes, 8, is_big_endian) as i64;
     temp
 }
 
+/// Utility function for converting a byte array to an i32
 fn byte_array_to_sint32(bytes: Vec<u8>, is_big_endian: bool) -> i32 {
     let temp = byte_array_to_int(bytes, 4, is_big_endian) as i32;
     temp
 }
 
+/// Utility function for converting a byte array to an i16
 fn byte_array_to_sint16(bytes: Vec<u8>, is_big_endian: bool) -> i16 {
     let temp = byte_array_to_int(bytes, 2, is_big_endian) as i16;
     temp
 }
 
+/// Utility function for converting a byte array to an i8
 fn byte_array_to_sint8(bytes: Vec<u8>, is_big_endian: bool) -> i8 {
     let temp = byte_array_to_int(bytes, 1, is_big_endian) as i8;
     temp
 }
 
+/// Utility function for converting a byte array to either a 32 or 64-bit float.
 fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, _is_big_endian: bool) -> f64 {
     if num_bytes == 1 {
         return bytes[0] as f64;
@@ -485,12 +494,6 @@ fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, _is_big_endian: bool) -
     }
 
     0.0
-}
-
-fn print_byte_array(bytes: Vec<u8>) {
-    for byte in bytes {
-        print!("{:#04x} ", byte);
-    }
 }
 
 pub enum FieldType {
