@@ -306,10 +306,10 @@ fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec
     Ok(buf)
 }
 
-fn read_u32<R: Read>(reader: &mut BufReader<R>, big_endian: bool) -> Result<u32>
+fn read_u32<R: Read>(reader: &mut BufReader<R>, is_big_endian: bool) -> Result<u32>
 {
     let bytes = read_n(reader, 4)?;
-    let num = byte_array_to_int(bytes, 4, big_endian) as u32;
+    let num = byte_array_to_int(bytes, 4, is_big_endian) as u32;
 
     Ok(num)
 }
@@ -350,7 +350,7 @@ fn byte_array_to_string(bytes: Vec<u8>, num_bytes: usize) -> String {
     result
 }
 
-fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 {
+fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, is_big_endian: bool) -> u64 {
     if num_bytes == 1 {
         return bytes[0] as u64;
     }
@@ -358,9 +358,9 @@ fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 
     let mut num = 0;
     let mut offset = 0;
 
-    if big_endian {
+    if is_big_endian {
         for i in 0..num_bytes {
-            num = num | (bytes[i] as u64) << offset;
+            num = (num << offset) | (bytes[i] as u64);
             offset = offset + 8;
         }
     }
@@ -374,7 +374,7 @@ fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, big_endian: bool) -> u64 
     num
 }
 
-fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, _big_endian: bool) -> f64 {
+fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, _is_big_endian: bool) -> f64 {
     if num_bytes == 1 {
         return bytes[0] as f64;
     }
@@ -614,9 +614,9 @@ impl FitRecord {
         reader.read_exact(&mut definition_header)?;
 
         // Make a note of the Architecture and Global Message Number.
+        state.is_big_endian = definition_header[DEF_MSG_ARCHITECTURE] == 1;
         let global_msg_num = byte_array_to_int(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.is_big_endian) as u16;
         state.current_global_msg_num = global_msg_num;
-        state.is_big_endian = definition_header[DEF_MSG_ARCHITECTURE] == 1;
 
         // Make sure we have an entry in the hash map for this global message. This will do nothing if it already exists.
         state.insert_global_msg(global_msg_num);
@@ -713,7 +713,7 @@ impl FitRecord {
                             0x84 => { field.num_int = byte_array_to_int(data, 2, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
                             0x85 => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian) & 0x7FFFFFFF; field.field_type = FieldType::FieldTypeInt; fields.push(field); },
                             0x86 => { field.num_int = byte_array_to_int(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
-                            0x07 => { field.string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; /*println!("{} {}", def.size, field.string);*/ fields.push(field); },
+                            0x07 => { field.string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; fields.push(field); },
                             0x88 => { field.num_float = byte_array_to_float(data, 4, state.is_big_endian); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
                             0x89 => { field.num_float = byte_array_to_float(data, 8, state.is_big_endian); field.field_type = FieldType::FieldTypeFloat; fields.push(field); },
                             0x0A => { field.num_int = byte_array_to_int(data, 1, state.is_big_endian); field.field_type = FieldType::FieldTypeInt; fields.push(field); },
