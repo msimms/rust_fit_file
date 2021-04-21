@@ -513,6 +513,12 @@ fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, _is_big_endian: bool) -
     0.0
 }
 
+/// Utility function for converting between semicircles and degrees.
+pub fn semicircles_to_degrees(semicircles: f64) -> f64 {
+    let degrees = semicircles * (180.0 / f64::powf(2.0, 31.0));
+    degrees
+}
+
 pub struct FitDeviceInfoMsg {
     pub timestamp: Option<u32>, // 1 * s + 0,
     pub serial_number: Option<u32>, //
