@@ -23,15 +23,16 @@ mod fit;
 
 #[cfg(test)]
 mod tests {
-    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>, field_defs: crate::fit::FieldDefinitionList) {
+    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>) {
         let global_message_names = crate::fit::init_global_msg_name_map();
 
         match global_message_names.get(&global_message_num) {
-            Some(name) => print!("Callback for global message num {} ({}), local message type {}, timestamp {}, values: ", global_message_num, name, local_msg_type, timestamp),
+            Some(name) => print!("Callback for {} message, local message type {}, timestamp {}, values: ", name, local_msg_type, timestamp),
             None => print!("Callback for global message num {}, local message type {} timestamp {}, values: ", global_message_num, local_msg_type, timestamp)
         }
 
         for field in fields {
+            print!("{} ", field.field_def);
             match field.field_type {
                 crate::fit::FieldType::FieldTypeNotSet => { print!("[not set] "); },
                 crate::fit::FieldType::FieldTypeUInt => { print!("{} ", field.num_uint); },

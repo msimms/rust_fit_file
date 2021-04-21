@@ -201,7 +201,17 @@ pub const FIT_SPORT_FLOOR_CLIMBING: u8 = 48;
 pub const FIT_SPORT_DIVING: u8 = 53;
 pub const FIT_SPORT_ALL: u8 = 254;
 
-type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, data: Vec<FieldValue>, field_defs: FieldDefinitionList);
+pub const FIT_ENUM_INVALID: u8 = 0xff;
+pub const FIT_STROKE_TYPE_INVALID: u8 = FIT_ENUM_INVALID;
+pub const FIT_STROKE_TYPE_NO_EVENT: u8 = 0;
+pub const FIT_STROKE_TYPE_OTHER: u8 = 1; // stroke was detected but cannot be identified
+pub const FIT_STROKE_TYPE_SERVE: u8 = 2;
+pub const FIT_STROKE_TYPE_FOREHAND: u8 = 3;
+pub const FIT_STROKE_TYPE_BACKHAND: u8 = 4;
+pub const FIT_STROKE_TYPE_SMASH: u8 = 5;
+pub const FIT_STROKE_TYPE_COUNT: u8 = 6;
+
+type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, data: Vec<FieldValue>);
 
 pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     let mut global_msg_name_map = HashMap::<u16, String>::new();
@@ -297,6 +307,7 @@ pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     global_msg_name_map
 }
 
+/// Builds a hash map that maps Sports IDs to human-readable strings.
 pub fn init_sport_name_map() -> HashMap<u8, String> {
     let mut sport_name_map = HashMap::<u8, String>::new();
 
@@ -354,6 +365,7 @@ pub fn init_sport_name_map() -> HashMap<u8, String> {
     sport_name_map
 }
 
+/// Utility function for reading a given number of bytes from a BufReader into a vec.
 fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec<u8> >
 {
     let mut buf = vec![];
@@ -363,14 +375,16 @@ fn read_n<R: Read>(reader: &mut BufReader<R>, bytes_to_read: u64) -> Result< Vec
     Ok(buf)
 }
 
+/// Utility function for reading a 32-bit unsigned integer from a BufReader.
 fn read_u32<R: Read>(reader: &mut BufReader<R>, is_big_endian: bool) -> Result<u32>
 {
     let bytes = read_n(reader, 4)?;
-    let num = byte_array_to_int(bytes, 4, is_big_endian) as u32;
+    let num = byte_array_to_uint(bytes, 4, is_big_endian) as u32;
 
     Ok(num)
 }
 
+/// Utility function for reading a byte from a BufReader.
 fn read_byte<R: Read>(reader: &mut BufReader<R>) -> Result<u8>
 {
     let mut byte: [u8; 1] = [0; 1];
@@ -379,6 +393,7 @@ fn read_byte<R: Read>(reader: &mut BufReader<R>) -> Result<u8>
     Ok(byte[0])
 }
 
+/// Utility function for reading a null-terminated string from the BufReader.
 fn read_string<R: Read>(reader: &mut BufReader<R>) -> Result<String>
 {
     let mut result = String::new();
@@ -398,6 +413,7 @@ fn read_string<R: Read>(reader: &mut BufReader<R>) -> Result<String>
     Ok(result)
 }
 
+/// Utility function for converting a byte array into a string of the specified number of bytes.
 fn byte_array_to_string(bytes: Vec<u8>, num_bytes: usize) -> String {
     let mut result = String::new();
 
@@ -407,7 +423,8 @@ fn byte_array_to_string(bytes: Vec<u8>, num_bytes: usize) -> String {
     result
 }
 
-fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, is_big_endian: bool) -> u64 {
+/// Utility function for converting a byte array to an unsigned int of the given size.
+fn byte_array_to_uint(bytes: Vec<u8>, num_bytes: usize, is_big_endian: bool) -> u64 {
     if num_bytes == 1 {
         return bytes[0] as u64;
     }
@@ -433,49 +450,49 @@ fn byte_array_to_int(bytes: Vec<u8>, num_bytes: usize, is_big_endian: bool) -> u
 
 /// Utility function for converting a byte array to an u64
 fn byte_array_to_uint64(bytes: Vec<u8>, is_big_endian: bool) -> u64 {
-    let temp = byte_array_to_int(bytes, 8, is_big_endian);
+    let temp = byte_array_to_uint(bytes, 8, is_big_endian);
     temp
 }
 
 /// Utility function for converting a byte array to an u32
 fn byte_array_to_uint32(bytes: Vec<u8>, is_big_endian: bool) -> u32 {
-    let temp = byte_array_to_int(bytes, 4, is_big_endian) as u32;
+    let temp = byte_array_to_uint(bytes, 4, is_big_endian) as u32;
     temp
 }
 
 /// Utility function for converting a byte array to an u16
 fn byte_array_to_uint16(bytes: Vec<u8>, is_big_endian: bool) -> u16 {
-    let temp = byte_array_to_int(bytes, 2, is_big_endian) as u16;
+    let temp = byte_array_to_uint(bytes, 2, is_big_endian) as u16;
     temp
 }
 
 /// Utility function for converting a byte array to an u8
 fn byte_array_to_uint8(bytes: Vec<u8>, is_big_endian: bool) -> u8 {
-    let temp = byte_array_to_int(bytes, 1, is_big_endian) as u8;
+    let temp = byte_array_to_uint(bytes, 1, is_big_endian) as u8;
     temp
 }
 
 /// Utility function for converting a byte array to an i64
 fn byte_array_to_sint64(bytes: Vec<u8>, is_big_endian: bool) -> i64 {
-    let temp = byte_array_to_int(bytes, 8, is_big_endian) as i64;
+    let temp = byte_array_to_uint(bytes, 8, is_big_endian) as i64;
     temp
 }
 
 /// Utility function for converting a byte array to an i32
 fn byte_array_to_sint32(bytes: Vec<u8>, is_big_endian: bool) -> i32 {
-    let temp = byte_array_to_int(bytes, 4, is_big_endian) as i32;
+    let temp = byte_array_to_uint(bytes, 4, is_big_endian) as i32;
     temp
 }
 
 /// Utility function for converting a byte array to an i16
 fn byte_array_to_sint16(bytes: Vec<u8>, is_big_endian: bool) -> i16 {
-    let temp = byte_array_to_int(bytes, 2, is_big_endian) as i16;
+    let temp = byte_array_to_uint(bytes, 2, is_big_endian) as i16;
     temp
 }
 
 /// Utility function for converting a byte array to an i8
 fn byte_array_to_sint8(bytes: Vec<u8>, is_big_endian: bool) -> i8 {
-    let temp = byte_array_to_int(bytes, 1, is_big_endian) as i8;
+    let temp = byte_array_to_uint(bytes, 1, is_big_endian) as i8;
     temp
 }
 
@@ -496,6 +513,99 @@ fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, _is_big_endian: bool) -
     0.0
 }
 
+pub struct FitDeviceInfoMsg {
+    pub timestamp: Option<u32>, // 1 * s + 0,
+    pub serial_number: Option<u32>, //
+    pub cum_operating_time: Option<u32>, // 1 * s + 0, Reset by new battery or charge.
+    //FIT_STRING product_name[FIT_DEVICE_INFO_MESG_PRODUCT_NAME_COUNT], // Optional free form string to indicate the devices name or model
+    //FIT_MANUFACTURER manufacturer, //
+    pub product: Option<u16>,
+    pub software_version: Option<u16>,
+    pub battery_voltage: Option<u16>, // 256 * V + 0,
+    pub ant_device_number: Option<u16>, //
+    //FIT_DEVICE_INDEX device_index, //
+    pub device_type: Option<u8>, //
+    pub hardware_version: Option<u8>, //
+    //FIT_BATTERY_STATUS battery_status, //
+    //FIT_BODY_LOCATION sensor_position, // Indicates the location of the sensor
+    //FIT_STRING descriptor[FIT_DEVICE_INFO_MESG_DESCRIPTOR_COUNT], // Used to describe the sensor or location
+    pub ant_transmission_type: Option<u8>, //
+    //FIT_ANT_NETWORK ant_network, //
+    //FIT_SOURCE_TYPE source_type; //
+}
+
+impl FitDeviceInfoMsg {
+    pub fn new(fields: Vec<FieldValue>) -> Self {
+        let msg = FitDeviceInfoMsg{ timestamp: None, serial_number: None, cum_operating_time: None, product: None, software_version: None, battery_voltage: None,
+            ant_device_number: None, device_type: None, hardware_version: None, ant_transmission_type: None };
+        msg
+    }
+}
+
+pub struct FitRecordMsg {
+    pub timestamp: Option<u32>, // 1 * s + 0,
+    pub position_lat: Option<i32>, // 1 * semicircles + 0,
+    pub position_long: Option<i32>, // 1 * semicircles + 0,
+    pub distance: Option<u32>, // 100 * m + 0,
+    pub time_from_course: Option<i32>, // 1000 * s + 0,
+    pub total_cycles: Option<u32>, // 1 * cycles + 0,
+    pub accumulated_power: Option<u32>, // 1 * watts + 0,
+    pub enhanced_speed: Option<u32>, // 1000 * m/s + 0,
+    pub enhanced_altitude: Option<u32>, // 5 * m + 500,
+    pub altitude: Option<u16>, // 5 * m + 500,
+    pub speed: Option<u16>, // 1000 * m/s + 0,
+    pub power: Option<u16>, // 1 * watts + 0,
+    pub grade: Option<i16>, // 100 * % + 0,
+    pub compressed_accumulated_power: Option<u16>, // 1 * watts + 0,
+    pub vertical_speed: Option<i16>, // 1000 * m/s + 0,
+    pub calories: Option<u16>, // 1 * kcal + 0,
+    pub vertical_oscillation: Option<u16>, // 10 * mm + 0,
+    pub stance_time_percent: Option<u16>, // 100 * percent + 0,
+    pub stance_time: Option<u16>, // 10 * ms + 0,
+    pub ball_speed: Option<u16>, // 100 * m/s + 0,
+    pub cadence256: Option<u16>, // 256 * rpm + 0, Log cadence and fractional cadence for backwards compatability
+    pub total_hemoglobin_conc: Option<u16>, // 100 * g/dL + 0, Total saturated and unsaturated hemoglobin
+    pub total_hemoglobin_conc_min: Option<u16>, // 100 * g/dL + 0, Min saturated and unsaturated hemoglobin
+    pub total_hemoglobin_conc_max: Option<u16>, // 100 * g/dL + 0, Max saturated and unsaturated hemoglobin
+    pub saturated_hemoglobin_percent: Option<u16>, // 10 * % + 0, Percentage of hemoglobin saturated with oxygen
+    pub saturated_hemoglobin_percent_min: Option<u16>, // 10 * % + 0, Min percentage of hemoglobin saturated with oxygen
+    pub saturated_hemoglobin_percent_max: Option<u16>, // 10 * % + 0, Max percentage of hemoglobin saturated with oxygen
+    pub heart_rate: Option<u8>, // 1 * bpm + 0,
+    pub cadence: Option<u8>, // 1 * rpm + 0,
+    //FIT_BYTE compressed_speed_distance[FIT_RECORD_MESG_COMPRESSED_SPEED_DISTANCE_COUNT]: Option<u8>, //
+    pub resistance: Option<u8>, // Relative. 0 is none  254 is Max.
+    pub cycle_length: Option<u8>, // 100 * m + 0,
+    pub temperature: Option<i8>, // 1 * C + 0,
+    //FIT_UINT8 speed_1s[FIT_RECORD_MESG_SPEED_1S_COUNT], // 16 * m/s + 0, Speed at 1s intervals.  Timestamp field indicates time of last array element.
+    pub cycles: Option<u8>, // 1 * cycles + 0,
+    pub left_right_balance: Option<u8>,
+    pub gps_accuracy: Option<u8>, // 1 * m + 0,
+    pub activity_type: Option<u8>,
+    pub left_torque_effectiveness: Option<u8>, // 2 * percent + 0,
+    pub right_torque_effectiveness: Option<u8>, // 2 * percent + 0,
+    pub left_pedal_smoothness: Option<u8>, // 2 * percent + 0,
+    pub right_pedal_smoothness: Option<u8>, // 2 * percent + 0,
+    pub combined_pedal_smoothness: Option<u8>, // 2 * percent + 0,
+    pub time128: Option<u8>, // 128 * s + 0,
+    pub stroke_type: Option<u8>,
+    pub zone: Option<u8>,
+    pub fractional_cadence: Option<u8> // 128 * rpm + 0,
+    //FIT_DEVICE_INDEX device_index;
+}
+
+impl FitRecordMsg {
+    pub fn new(fields: Vec<FieldValue>) -> Self {
+        let msg = FitRecordMsg{ timestamp: None, position_lat: None, position_long: None, distance: None, time_from_course: None, total_cycles: None, accumulated_power: None,
+            enhanced_speed: None, enhanced_altitude: None, altitude: None, speed: None, power: None, grade: None, compressed_accumulated_power: None, vertical_speed: None,
+            calories: None, vertical_oscillation: None, stance_time_percent: None, stance_time: None, ball_speed: None, cadence256: None, total_hemoglobin_conc: None,
+            total_hemoglobin_conc_min: None, total_hemoglobin_conc_max: None, saturated_hemoglobin_percent: None, saturated_hemoglobin_percent_min: None,
+            saturated_hemoglobin_percent_max: None, heart_rate: None, cadence: None, resistance: None, cycle_length: None, temperature: None,
+            cycles: None, left_right_balance: None, gps_accuracy: None, activity_type: None, left_torque_effectiveness: None, right_torque_effectiveness: None,
+            left_pedal_smoothness: None, right_pedal_smoothness: None, combined_pedal_smoothness: None, time128: None, stroke_type: None, zone: None, fractional_cadence: None };
+        msg
+    }
+}
+
 pub enum FieldType {
     FieldTypeNotSet, // Value not set
     FieldTypeUInt, // Value is an unsigned integer
@@ -506,7 +616,8 @@ pub enum FieldType {
 }
 
 pub struct FieldValue {
-    pub field_type: FieldType,
+    pub field_def: u8, // From the message definition
+    pub field_type: FieldType, // Tells us which of the following to use
     pub num_uint: u64,
     pub num_sint: i64,
     pub num_float: f64,
@@ -516,7 +627,7 @@ pub struct FieldValue {
 
 impl FieldValue {
     pub fn new() -> Self {
-        let state = FieldValue{ field_type: FieldType::FieldTypeNotSet, num_uint: 0, num_sint: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
+        let state = FieldValue{ field_def: 0, field_type: FieldType::FieldTypeNotSet, num_uint: 0, num_sint: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
         state
     }
 }
@@ -718,7 +829,7 @@ impl FitRecord {
 
         // Make a note of the Architecture and Global Message Number.
         state.is_big_endian = definition_header[DEF_MSG_ARCHITECTURE] == 1;
-        let global_msg_num = byte_array_to_int(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.is_big_endian) as u16;
+        let global_msg_num = byte_array_to_uint(definition_header[DEF_MSG_GLOBAL_MSG_NUM..(DEF_MSG_GLOBAL_MSG_NUM + 2)].to_vec(), 2, state.is_big_endian) as u16;
         state.current_global_msg_num = global_msg_num;
 
         // Make sure we have an entry in the hash map for this global message. This will do nothing if it already exists.
@@ -793,6 +904,7 @@ impl FitRecord {
                 for def in field_defs.iter() {
 
                     let mut field = FieldValue::new();
+                    field.field_def = def.field_def;
 
                     // Read the number of bytes prescribed by the field definition.
                     let data = read_n(reader, def.size as u64)?;
@@ -802,7 +914,7 @@ impl FitRecord {
                         panic!("Message Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
                     }
                     else if def.field_def == FIELD_TIMESTAMP {
-                        new_timestamp = byte_array_to_int(data, 4, state.is_big_endian) as u32;
+                        new_timestamp = byte_array_to_uint(data, 4, state.is_big_endian) as u32;
                     }
                     else if def.field_def == FIELD_PART_INDEX {
                         panic!("Part Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
@@ -834,7 +946,7 @@ impl FitRecord {
                 }
 
                 // Tell the people.
-                callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields, field_defs.to_vec());
+                callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields);
             },
             None    => {
                 let e = Error::new(std::io::ErrorKind::Other, "Message definition not found.");
