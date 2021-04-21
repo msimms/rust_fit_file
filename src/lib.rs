@@ -24,25 +24,35 @@ mod fit;
 #[cfg(test)]
 mod tests {
     fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>) {
-        let global_message_names = crate::fit::init_global_msg_name_map();
+        if global_message_num == crate::fit::GLOBAL_MSG_NUM_DEVICE_INFO {
+            let msg = crate::fit::FitDeviceInfoMsg::new(fields);
 
-        match global_message_names.get(&global_message_num) {
-            Some(name) => print!("Callback for {} message, local message type {}, timestamp {}, values: ", name, local_msg_type, timestamp),
-            None => print!("Callback for global message num {}, local message type {} timestamp {}, values: ", global_message_num, local_msg_type, timestamp)
         }
+        else if global_message_num == crate::fit::GLOBAL_MSG_NUM_RECORD {
+            let msg = crate::fit::FitRecordMsg::new(fields);
 
-        for field in fields {
-            print!("{} ", field.field_def);
-            match field.field_type {
-                crate::fit::FieldType::FieldTypeNotSet => { print!("[not set] "); },
-                crate::fit::FieldType::FieldTypeUInt => { print!("{} ", field.num_uint); },
-                crate::fit::FieldType::FieldTypeSInt => { print!("{} ", field.num_sint); },
-                crate::fit::FieldType::FieldTypeFloat => { print!("{} ", field.num_float); },
-                crate::fit::FieldType::FieldTypeByteArray => {},
-                crate::fit::FieldType::FieldTypeStr => { print!("\"{}\" ", field.string); },
+        }
+        else {
+            let global_message_names = crate::fit::init_global_msg_name_map();
+
+            match global_message_names.get(&global_message_num) {
+                Some(name) => print!("Callback for {} message, local message type {}, timestamp {}, values: ", name, local_msg_type, timestamp),
+                None => print!("Callback for global message num {}, local message type {} timestamp {}, values: ", global_message_num, local_msg_type, timestamp)
             }
+
+            for field in fields {
+                print!("{} ", field.field_def);
+                match field.field_type {
+                    crate::fit::FieldType::FieldTypeNotSet => { print!("[not set] "); },
+                    crate::fit::FieldType::FieldTypeUInt => { print!("{} ", field.num_uint); },
+                    crate::fit::FieldType::FieldTypeSInt => { print!("{} ", field.num_sint); },
+                    crate::fit::FieldType::FieldTypeFloat => { print!("{} ", field.num_float); },
+                    crate::fit::FieldType::FieldTypeByteArray => {},
+                    crate::fit::FieldType::FieldTypeStr => { print!("\"{}\" ", field.string); },
+                }
+            }
+            println!("");
         }
-        println!("");
     }
 
     #[test]

@@ -535,6 +535,8 @@ pub struct FitDeviceInfoMsg {
 }
 
 impl FitDeviceInfoMsg {
+
+    /// Constructor: Takes the fields that were read by the file parser and puts them into a structure.
     pub fn new(fields: Vec<FieldValue>) -> Self {
         let msg = FitDeviceInfoMsg{ timestamp: None, serial_number: None, cum_operating_time: None, product: None, software_version: None, battery_voltage: None,
             ant_device_number: None, device_type: None, hardware_version: None, ant_transmission_type: None };
@@ -589,19 +591,46 @@ pub struct FitRecordMsg {
     pub time128: Option<u8>, // 128 * s + 0,
     pub stroke_type: Option<u8>,
     pub zone: Option<u8>,
-    pub fractional_cadence: Option<u8> // 128 * rpm + 0,
+    pub fractional_cadence: Option<u8>, // 128 * rpm + 0,
     //FIT_DEVICE_INDEX device_index;
+    pub battery_soc: Option<u8>
 }
 
 impl FitRecordMsg {
+
+    /// Constructor: Takes the fields that were read by the file parser and puts them into a structure.
     pub fn new(fields: Vec<FieldValue>) -> Self {
-        let msg = FitRecordMsg{ timestamp: None, position_lat: None, position_long: None, distance: None, time_from_course: None, total_cycles: None, accumulated_power: None,
+
+        let mut msg = FitRecordMsg{ timestamp: None, position_lat: None, position_long: None, distance: None, time_from_course: None, total_cycles: None, accumulated_power: None,
             enhanced_speed: None, enhanced_altitude: None, altitude: None, speed: None, power: None, grade: None, compressed_accumulated_power: None, vertical_speed: None,
             calories: None, vertical_oscillation: None, stance_time_percent: None, stance_time: None, ball_speed: None, cadence256: None, total_hemoglobin_conc: None,
             total_hemoglobin_conc_min: None, total_hemoglobin_conc_max: None, saturated_hemoglobin_percent: None, saturated_hemoglobin_percent_min: None,
             saturated_hemoglobin_percent_max: None, heart_rate: None, cadence: None, resistance: None, cycle_length: None, temperature: None,
             cycles: None, left_right_balance: None, gps_accuracy: None, activity_type: None, left_torque_effectiveness: None, right_torque_effectiveness: None,
-            left_pedal_smoothness: None, right_pedal_smoothness: None, combined_pedal_smoothness: None, time128: None, stroke_type: None, zone: None, fractional_cadence: None };
+            left_pedal_smoothness: None, right_pedal_smoothness: None, combined_pedal_smoothness: None, time128: None, stroke_type: None, zone: None, fractional_cadence: None,
+            battery_soc: None };
+
+        for field in fields {
+            match field.field_def {
+                0 => { msg.position_lat = Some(field.get_i32()); },
+                1 => { msg.position_long = Some(field.get_i32()); },
+                2 => { msg.altitude = Some(field.get_u16()); },
+                3 => { msg.heart_rate = Some(field.get_u8()); },
+                4 => { msg.cadence = Some(field.get_u8()); },
+                5 => { msg.distance = Some(field.get_u32()); },
+                6 => { msg.speed = Some(field.get_u16()); },
+                7 => { msg.power = Some(field.get_u16()); },
+                9 => { msg.grade = Some(field.get_i16()); },
+                13 => { msg.temperature = Some(field.get_i8()); },
+                31 => { msg.gps_accuracy = Some(field.get_u8()); },
+                43 => { msg.left_torque_effectiveness = Some(field.get_u8()); },
+                44 => { msg.right_torque_effectiveness = Some(field.get_u8()); },
+                45 => { msg.left_pedal_smoothness = Some(field.get_u8()); },
+                46 => { msg.right_pedal_smoothness = Some(field.get_u8()); },
+                81 => { msg.battery_soc = Some(field.get_u8()); },
+                _ => { panic!("Record field not implemented {:#x}", field.field_def); }
+            }
+        }
         msg
     }
 }
@@ -629,6 +658,38 @@ impl FieldValue {
     pub fn new() -> Self {
         let state = FieldValue{ field_def: 0, field_type: FieldType::FieldTypeNotSet, num_uint: 0, num_sint: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
         state
+    }
+
+    pub fn get_i8(&self) -> i8 {
+        return self.num_sint as i8;
+    }
+
+    pub fn get_i16(&self) -> i16 {
+        return self.num_sint as i16;
+    }
+
+    pub fn get_i32(&self) -> i32 {
+        return self.num_sint as i32;
+    }
+
+    pub fn get_i64(&self) -> i64 {
+        return self.num_sint as i64;
+    }
+
+    pub fn get_u8(&self) -> u8 {
+        return self.num_uint as u8;
+    }
+
+    pub fn get_u16(&self) -> u16 {
+        return self.num_uint as u16;
+    }
+
+    pub fn get_u32(&self) -> u32 {
+        return self.num_uint as u32;
+    }
+
+    pub fn get_u64(&self) -> u64 {
+        return self.num_uint as u64;
     }
 }
 
