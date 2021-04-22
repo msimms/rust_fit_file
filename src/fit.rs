@@ -523,29 +523,50 @@ pub struct FitDeviceInfoMsg {
     pub timestamp: Option<u32>, // 1 * s + 0,
     pub serial_number: Option<u32>, //
     pub cum_operating_time: Option<u32>, // 1 * s + 0, Reset by new battery or charge.
-    //FIT_STRING product_name[FIT_DEVICE_INFO_MESG_PRODUCT_NAME_COUNT], // Optional free form string to indicate the devices name or model
-    //FIT_MANUFACTURER manufacturer, //
+    pub product_name: Option<String>, // Optional free form string to indicate the devices name or model
+    pub manufacturer: Option<u16>, //
     pub product: Option<u16>,
     pub software_version: Option<u16>,
     pub battery_voltage: Option<u16>, // 256 * V + 0,
     pub ant_device_number: Option<u16>, //
-    //FIT_DEVICE_INDEX device_index, //
+    pub device_index: Option<u8>, //
     pub device_type: Option<u8>, //
     pub hardware_version: Option<u8>, //
-    //FIT_BATTERY_STATUS battery_status, //
+    pub battery_status: Option<u8>, //
     //FIT_BODY_LOCATION sensor_position, // Indicates the location of the sensor
-    //FIT_STRING descriptor[FIT_DEVICE_INFO_MESG_DESCRIPTOR_COUNT], // Used to describe the sensor or location
+    pub descriptor: Option<String>, // Used to describe the sensor or location
     pub ant_transmission_type: Option<u8>, //
     //FIT_ANT_NETWORK ant_network, //
-    //FIT_SOURCE_TYPE source_type; //
+    pub source_type: Option<u8> //
 }
 
 impl FitDeviceInfoMsg {
 
     /// Constructor: Takes the fields that were read by the file parser and puts them into a structure.
     pub fn new(fields: Vec<FieldValue>) -> Self {
-        let msg = FitDeviceInfoMsg{ timestamp: None, serial_number: None, cum_operating_time: None, product: None, software_version: None, battery_voltage: None,
-            ant_device_number: None, device_type: None, hardware_version: None, ant_transmission_type: None };
+        let mut msg = FitDeviceInfoMsg{ timestamp: None, serial_number: None, cum_operating_time: None, product_name: None, manufacturer: None,
+            product: None, software_version: None, battery_voltage: None, ant_device_number: None, device_index: None, device_type: None,
+            battery_status: None, hardware_version: None, descriptor: None, ant_transmission_type: None, source_type: None };
+
+        for field in fields {
+            match field.field_def {
+                0 => { msg.device_index = Some(field.get_u8()); },
+                1 => { msg.device_type = Some(field.get_u8()); },
+                2 => { msg.manufacturer = Some(field.get_u16()); },
+                4 => { msg.product = Some(field.get_u16()); },
+                3 => { msg.serial_number = Some(field.get_u32()); },
+                5 => { msg.software_version = Some(field.get_u16()); },
+                6 => { msg.hardware_version = Some(field.get_u8()); },
+                10 => { msg.battery_voltage = Some(field.get_u16()); },
+                11 => { msg.battery_status = Some(field.get_u8()); },
+                16 => { msg.ant_device_number = Some(field.get_u16()); },
+                19 => { msg.descriptor = Some(field.string); },
+                21 => { msg.ant_device_number = Some(field.get_u16()); },
+                25 => { msg.source_type = Some(field.get_u8()); },
+                27 => { msg.product_name = Some(field.string); },
+                _ => { panic!("Device Info field not implemented {:#x}", field.field_def); }
+            }
+        }
         msg
     }
 }
