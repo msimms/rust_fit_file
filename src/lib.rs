@@ -24,13 +24,18 @@ mod fit;
 #[cfg(test)]
 mod tests {
     fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>) {
-        if global_message_num == crate::fit::GLOBAL_MSG_NUM_DEVICE_INFO {
+        if global_message_num == crate::fit::GLOBAL_MSG_NUM_SESSION {
+            let msg = crate::fit::FitSessionMsg::new(fields);
+
+        }
+        else if global_message_num == crate::fit::GLOBAL_MSG_NUM_DEVICE_INFO {
             let msg = crate::fit::FitDeviceInfoMsg::new(fields);
 
         }
         else if global_message_num == crate::fit::GLOBAL_MSG_NUM_RECORD {
             let msg = crate::fit::FitRecordMsg::new(fields);
-
+            //println!("Lat {} Lon {}", msg.position_lat.unwrap(), msg.position_long.unwrap());
+            //println!("Lat {} Lon {}", crate::fit::semicircles_to_degrees(msg.position_lat.unwrap()), crate::fit::semicircles_to_degrees(msg.position_long.unwrap()));
         }
         else {
             let global_message_names = crate::fit::init_global_msg_name_map();

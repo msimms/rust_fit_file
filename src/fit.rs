@@ -514,9 +514,74 @@ fn byte_array_to_float(bytes: Vec<u8>, num_bytes: usize, _is_big_endian: bool) -
 }
 
 /// Utility function for converting between semicircles and degrees.
-pub fn semicircles_to_degrees(semicircles: f64) -> f64 {
-    let degrees = semicircles * (180.0 / f64::powf(2.0, 31.0));
+pub fn semicircles_to_degrees(semicircles: i32) -> f64 {
+    let degrees = (semicircles as f64) * 0.000000083819032; // (180.0 / f64::powf(2.0, 31.0));
     degrees
+}
+
+pub struct FitSessionMsg {
+    pub event: Option<u8>,
+    pub event_type: Option<u8>,
+    pub start_time: Option<u32>,
+    pub start_position_lat: Option<i32>,
+    pub start_position_long: Option<i32>,
+    pub total_elapsed_time: Option<u32>,
+    pub total_timer_time: Option<u32>,
+    pub total_distance: Option<u32>,
+    pub total_cycles: Option<u32>,
+    pub total_calories: Option<u16>,
+    pub total_fat_calories: Option<u16>,
+    pub avg_speed: Option<u16>,
+    pub max_speed: Option<u16>,
+    pub avg_heart_rate: Option<u8>,
+    pub max_heart_rate: Option<u8>,
+    pub avg_cadence: Option<u8>,
+    pub max_cadence: Option<u8>,
+    pub avg_power: Option<u16>,
+    pub max_power: Option<u16>,
+    pub total_ascent: Option<u16>,
+    pub total_descent: Option<u16>,
+    pub total_training_effect: Option<u8>,
+    pub first_lap_index: Option<u8>
+}
+
+impl FitSessionMsg {
+    /// Constructor: Takes the fields that were read by the file parser and puts them into a structure.
+    pub fn new(fields: Vec<FieldValue>) -> Self {
+        let mut msg = FitSessionMsg{ event: None, event_type: None, start_time: None, start_position_lat: None, start_position_long: None,
+            total_elapsed_time: None, total_timer_time: None, total_distance: None, total_cycles: None, total_calories: None, total_fat_calories: None,
+            avg_speed: None, max_speed: None, avg_heart_rate: None, max_heart_rate: None, avg_cadence: None, max_cadence: None, avg_power: None, max_power: None,
+            total_ascent: None, total_descent: None, total_training_effect: None, first_lap_index: None };
+
+        for field in fields {
+            match field.field_def {
+                0 => { msg.event = Some(field.get_u8()); },
+                1 => { msg.event_type = Some(field.get_u8()); },
+                2 => { msg.start_time = Some(field.get_u32()); },
+                3 => { msg.start_position_lat = Some(field.get_i32()); },
+                4 => { msg.start_position_long = Some(field.get_i32()); },
+                7 => { msg.total_elapsed_time = Some(field.get_u32()); },
+                8 => { msg.total_timer_time = Some(field.get_u32()); },
+                9 => { msg.total_distance = Some(field.get_u32()); },
+                10 => { msg.total_cycles = Some(field.get_u32()); },
+                11 => { msg.total_calories = Some(field.get_u16()); },
+                13 => { msg.total_fat_calories = Some(field.get_u16()); },
+                14 => { msg.avg_speed = Some(field.get_u16()); },
+                15 => { msg.max_speed = Some(field.get_u16()); },
+                16 => { msg.avg_heart_rate = Some(field.get_u8()); },
+                17 => { msg.max_heart_rate = Some(field.get_u8()); },
+                18 => { msg.avg_cadence = Some(field.get_u8()); },
+                19 => { msg.max_cadence = Some(field.get_u8()); },
+                20 => { msg.avg_power = Some(field.get_u16()); },
+                21 => { msg.max_power = Some(field.get_u16()); },
+                22 => { msg.total_ascent = Some(field.get_u16()); },
+                23 => { msg.total_descent = Some(field.get_u16()); },
+                24 => { msg.total_training_effect = Some(field.get_u8()); },
+                _ => { panic!("Session field not implemented {:#x}", field.field_def); }
+            }
+        }
+        msg
+    }
 }
 
 pub struct FitDeviceInfoMsg {
@@ -553,10 +618,11 @@ impl FitDeviceInfoMsg {
                 0 => { msg.device_index = Some(field.get_u8()); },
                 1 => { msg.device_type = Some(field.get_u8()); },
                 2 => { msg.manufacturer = Some(field.get_u16()); },
-                4 => { msg.product = Some(field.get_u16()); },
                 3 => { msg.serial_number = Some(field.get_u32()); },
+                4 => { msg.product = Some(field.get_u16()); },
                 5 => { msg.software_version = Some(field.get_u16()); },
                 6 => { msg.hardware_version = Some(field.get_u8()); },
+                7 => { msg.cum_operating_time = Some(field.get_u32()); },
                 10 => { msg.battery_voltage = Some(field.get_u16()); },
                 11 => { msg.battery_status = Some(field.get_u8()); },
                 16 => { msg.ant_device_number = Some(field.get_u16()); },
