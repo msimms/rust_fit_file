@@ -26,7 +26,7 @@ mod tests {
     fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>) {
         if global_message_num == crate::fit::GLOBAL_MSG_NUM_SESSION {
             let msg = crate::fit::FitSessionMsg::new(fields);
-
+            println!("Sport {}", msg.sport.unwrap());
         }
         else if global_message_num == crate::fit::GLOBAL_MSG_NUM_DEVICE_INFO {
             let msg = crate::fit::FitDeviceInfoMsg::new(fields);
