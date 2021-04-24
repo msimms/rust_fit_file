@@ -26,10 +26,13 @@ mod tests {
 
     /// Called for each record message as it is processed.
     fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>) {
+
         if global_message_num == crate::fit::GLOBAL_MSG_NUM_SESSION {
             let msg = crate::fit::FitSessionMsg::new(fields);
+            let sport_names = crate::fit::init_sport_name_map();
+            let sport_id = msg.sport.unwrap();
 
-            println!("Sport {}", msg.sport.unwrap());
+            println!("Sport: {}", sport_names.get(&sport_id).unwrap());
         }
         else if global_message_num == crate::fit::GLOBAL_MSG_NUM_DEVICE_INFO {
             let msg = crate::fit::FitDeviceInfoMsg::new(fields);
@@ -38,18 +41,19 @@ mod tests {
         else if global_message_num == crate::fit::GLOBAL_MSG_NUM_RECORD {
             let msg = crate::fit::FitRecordMsg::new(fields);
 
-            println!("Lat {} Lon {}", crate::fit::semicircles_to_degrees(msg.position_lat.unwrap()), crate::fit::semicircles_to_degrees(msg.position_long.unwrap()));
+            println!("Timestamp: {} Latitude: {} Longitude: {}", timestamp, crate::fit::semicircles_to_degrees(msg.position_lat.unwrap()), crate::fit::semicircles_to_degrees(msg.position_long.unwrap()));
         }
         else {
             let global_message_names = crate::fit::init_global_msg_name_map();
 
             match global_message_names.get(&global_message_num) {
-                Some(name) => print!("Callback for {} message, local message type {}, timestamp {}, values: ", name, local_msg_type, timestamp),
-                None => print!("Callback for global message num {}, local message type {} timestamp {}, values: ", global_message_num, local_msg_type, timestamp)
+                Some(name) => print!("Callback for {} message, local message type {}, Timestamp {}, Values: ", name, local_msg_type, timestamp),
+                None => print!("Callback for Global Message Num {}, Local Message Type {} Timestamp {}, Values: ", global_message_num, local_msg_type, timestamp)
             }
 
             for field in fields {
                 print!("{} ", field.field_def);
+
                 match field.field_type {
                     crate::fit::FieldType::FieldTypeNotSet => { print!("[not set] "); },
                     crate::fit::FieldType::FieldTypeUInt => { print!("{} ", field.num_uint); },

@@ -425,9 +425,6 @@ fn byte_array_to_string(bytes: Vec<u8>, num_bytes: usize) -> String {
 
 /// Utility function for converting a byte array to an unsigned int of the given size.
 fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize, is_big_endian: bool) -> u64 {
-    if num_bytes == 1 {
-        return bytes[0] as u64;
-    }
 
     let mut num: u64 = 0;
 
@@ -1208,7 +1205,8 @@ impl FitRecord {
                         }
 
                         // Tell the people.
-                        callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields);
+                        // Also convert the FIT timestamp to UNIX. FIT timestamps are seconds since UTC 00:00:00 Dec 31 1989.
+                        callback(631065600 + state.timestamp, state.current_global_msg_num, local_msg_type, fields);
                     },
                     None    => {
                         let e = Error::new(std::io::ErrorKind::Other, "Message definition not found.");
@@ -1271,7 +1269,6 @@ impl FitRecord {
 
         // The first byte is a bit field that tells us more about the record.
         let header_byte = read_byte(reader)?;
-        //println!("Header Byte: {:#04x}", header_byte);
 
         // Normal header or compressed timestamp header?
         // A value of zero indicates a normal header.
