@@ -1,9 +1,9 @@
-# fit
+# fit_file
 FIT file parser written in Rust. FIT (Flexible and Interoperable Data Transfer) is a binary file format that is commonly used to exchange fitness data, such as that from a sports watch or bike computer.
 
 ## Example
 ```rust
-extern crate fit;
+extern crate fit_file;
 
 use std::io::BufReader;
 use std::fs::File;
@@ -27,7 +27,7 @@ fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields:
 fn main() {
     let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
     let mut reader = std::io::BufReader::new(file);
-    let fit = crate::fit::read(&mut reader, callback);
+    let fit = crate::fit_file::read(&mut reader, callback);
 }
 ```
 ## Current Status
