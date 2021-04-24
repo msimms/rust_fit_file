@@ -464,7 +464,7 @@ fn byte_array_to_uint16(bytes: Vec<u8>, is_big_endian: bool) -> u16 {
 }
 
 /// Utility function for converting a byte array to an u8
-fn byte_array_to_uint8(bytes: Vec<u8>, is_big_endian: bool) -> u8 {
+fn byte_array_to_uint8(bytes: Vec<u8>) -> u8 {
     bytes[0]
 }
 
@@ -487,8 +487,8 @@ fn byte_array_to_sint16(bytes: Vec<u8>, is_big_endian: bool) -> i16 {
 }
 
 /// Utility function for converting a byte array to an i8
-fn byte_array_to_sint8(bytes: Vec<u8>, is_big_endian: bool) -> i8 {
-    let temp = byte_array_to_num(bytes, 1, is_big_endian) as i8;
+fn byte_array_to_sint8(bytes: Vec<u8>) -> i8 {
+    let temp = bytes[0] as i8;
     temp
 }
 
@@ -915,19 +915,18 @@ pub type FieldDefinitionList = Vec<FieldDefinition>;
 #[derive(Debug, Default)]
 struct GlobalMessage {
     local_msg_defs: HashMap<u8, FieldDefinitionList>, // Describes the format of local messages, key is the local message type
-    is_big_endian: bool, // 1 = big endian
+    endianness_map: HashMap<u8, bool>, // true = big endian, key is the local message type
 }
 
 impl GlobalMessage {
     pub fn new() -> Self {
-        let msg = GlobalMessage{ is_big_endian: false, local_msg_defs: HashMap::<u8, FieldDefinitionList>::new() };
+        let msg = GlobalMessage{ local_msg_defs: HashMap::<u8, FieldDefinitionList>::new(), endianness_map: HashMap::<u8, bool>::new() };
         msg
     }
 
     /// For debugging purposes.
     fn print(&self) {
         for (local_msg_type, local_msg_def) in &self.local_msg_defs {
-            println!("   Architecture Is Big Endian: {}", self.is_big_endian);
             println!("   Local Message Type {}:", local_msg_type);
 
             for field_definition in local_msg_def {
@@ -938,16 +937,20 @@ impl GlobalMessage {
 
     /// Creates an entry in the local message map for the a local message with the specified number.
     /// If the message definition already exists then replace it.
-    fn insert_msg_def(&mut self, local_msg_type: u8, local_msg_def: FieldDefinitionList) {
+    fn insert_msg_def(&mut self, local_msg_type: u8, local_msg_def: FieldDefinitionList, is_big_endian: bool) {
         if self.local_msg_defs.contains_key(&local_msg_type) {
             self.local_msg_defs.remove(&local_msg_type);
         }
+        if self.endianness_map.contains_key(&local_msg_type) {
+            self.endianness_map.remove(&local_msg_type);
+        }
         self.local_msg_defs.insert(local_msg_type, local_msg_def);
+        self.endianness_map.insert(local_msg_type, is_big_endian);
     }
 
     /// Retrieves the local message with the specified number.
-    fn retrieve_msg_def(&self, local_msg_type: u8) -> ( Option<&FieldDefinitionList>, bool ) {
-        return ( self.local_msg_defs.get(&local_msg_type), self.is_big_endian )
+    fn retrieve_msg_def(&self, local_msg_type: u8) -> ( Option<&FieldDefinitionList>, Option<&bool> ) {
+        return ( self.local_msg_defs.get(&local_msg_type), self.endianness_map.get(&local_msg_type) )
     }
 }
 
@@ -984,14 +987,14 @@ impl FitState {
     }
 
     /// Adds the given global message/local message combo to the hash map.
-    fn insert_local_msg_def(&mut self, global_msg_num: u16, local_msg_type: u8, local_msg_def: FieldDefinitionList) {
+    fn insert_local_msg_def(&mut self, global_msg_num: u16, local_msg_type: u8, local_msg_def: FieldDefinitionList, is_big_endian: bool) {
         self.global_msg_map.entry(global_msg_num)
-            .and_modify(|e| { e.insert_msg_def(local_msg_type, local_msg_def) })
+            .and_modify(|e| { e.insert_msg_def(local_msg_type, local_msg_def, is_big_endian) })
             .or_insert(GlobalMessage::new());
     }
 
     /// Given a global message number and local message number, retrieves the corresonding field definitions.s
-    fn retrieve_msg_def(&self, global_msg_num: u16, local_msg_type: u8) -> ( Option<&FieldDefinitionList>, bool ) {
+    fn retrieve_msg_def(&self, global_msg_num: u16, local_msg_type: u8) -> ( Option<&FieldDefinitionList>, Option<&bool> ) {
         let global_msg_def = self.global_msg_map.get(&global_msg_num);
 
         match global_msg_def {
@@ -999,7 +1002,7 @@ impl FitState {
                 return global_msg_def.retrieve_msg_def(local_msg_type);
             }
             None => {
-                return ( None, false );
+                return ( None, None );
             }
         }
     }
@@ -1093,7 +1096,7 @@ impl FitRecord {
         state.insert_global_msg(global_msg_num);
 
         // Read each field.
-        let mut msg_defs: FieldDefinitionList = FieldDefinitionList::new();
+        let mut field_defs: FieldDefinitionList = FieldDefinitionList::new();
         let num_fields = definition_header[DEF_MSG_NUM_FIELDS];
         for _i in 0..num_fields {
 
@@ -1104,7 +1107,7 @@ impl FitRecord {
 
             // Add the definition.
             let field_def = FieldDefinition { field_def:field_num, size:field_bytes, base_type:field_type };
-            msg_defs.push(field_def);
+            field_defs.push(field_def);
         }
 
         // Is there any developer information in this record?
@@ -1123,15 +1126,12 @@ impl FitRecord {
 
                 // Add the definition.
                 let field_def = FieldDefinition { field_def:field_num, size:field_bytes, base_type:field_type };
-                msg_defs.push(field_def);
+                field_defs.push(field_def);
             }
         }
 
         // Associate the field definitions with the local message type.
-        state.insert_local_msg_def(global_msg_num, local_msg_type, msg_defs);
-
-        //println!("Message Definition: global message num: {} local message type: {} number of fields: {}", global_msg_num, local_msg_type, num_fields);
-        //state.print();
+        state.insert_local_msg_def(global_msg_num, local_msg_type, field_defs, is_big_endian);
 
         Ok(())
     }
@@ -1152,62 +1152,72 @@ impl FitRecord {
         let mut new_timestamp = state.timestamp;
 
         // Retrieve the field definitions based on the message type.
-        let ( field_defs, is_big_endian ) = state.retrieve_msg_def(state.current_global_msg_num, local_msg_type);
-        match field_defs {
-            Some(field_defs) => {
+        let ( field_defs, is_big_endian_ref ) = state.retrieve_msg_def(state.current_global_msg_num, local_msg_type);
+        match is_big_endian_ref {
+            Some(is_big_endian_ref) => {
+                let is_big_endian = *is_big_endian_ref;
 
-                // Read data for each message definition.
-                let mut fields = Vec::new();
-                for def in field_defs.iter() {
+                match field_defs {
+                    Some(field_defs) => {
 
-                    let mut field = FieldValue::new();
-                    field.field_def = def.field_def;
+                        // Read data for each message definition.
+                        let mut fields = Vec::new();
+                        for def in field_defs.iter() {
 
-                    // Read the number of bytes prescribed by the field definition.
-                    let data = read_n(reader, def.size as u64)?;
+                            let mut field = FieldValue::new();
+                            field.field_def = def.field_def;
 
-                    // Is this a special field, like a timestamp?
-                    if def.field_def == FIELD_MSG_INDEX {
-                        panic!("Message Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
-                    }
-                    else if def.field_def == FIELD_TIMESTAMP {
-                        new_timestamp = byte_array_to_uint32(data, is_big_endian);
-                    }
-                    else if def.field_def == FIELD_PART_INDEX {
-                        panic!("Part Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
-                    }
+                            // Read the number of bytes prescribed by the field definition.
+                            let data = read_n(reader, def.size as u64)?;
 
-                    // Normal field.
-                    else {
-                        match def.base_type {
-                            0x00 => { field.num_uint = byte_array_to_uint8(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                            0x01 => { field.num_sint = byte_array_to_sint8(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
-                            0x02 => { field.num_uint = byte_array_to_uint8(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                            0x83 => { field.num_sint = byte_array_to_sint16(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
-                            0x84 => { field.num_uint = byte_array_to_uint16(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                            0x85 => { field.num_sint = byte_array_to_sint32(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
-                            0x86 => { field.num_uint = byte_array_to_uint32(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                            0x07 => { field.string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; },
-                            0x88 => { field.num_float = byte_array_to_float(data, 4, is_big_endian); field.field_type = FieldType::FieldTypeFloat; },
-                            0x89 => { field.num_float = byte_array_to_float(data, 8, is_big_endian); field.field_type = FieldType::FieldTypeFloat; },
-                            0x0A => { field.num_uint = byte_array_to_uint8(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                            0x8B => { field.num_uint = byte_array_to_uint16(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                            0x8C => { field.num_uint = byte_array_to_uint32(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                            0x0D => { field.byte_array = data; field.field_type = FieldType::FieldTypeByteArray; },
-                            0x8E => { field.num_sint = byte_array_to_sint64(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
-                            0x8F => { field.num_uint = byte_array_to_uint64(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                            0x90 => { field.num_uint = byte_array_to_uint64(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                            _ => { panic!("Base Type not implemented {:#x}", def.base_type); }
+                            // Is this a special field, like a timestamp?
+                            if def.field_def == FIELD_MSG_INDEX {
+                                panic!("Message Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
+                            }
+                            else if def.field_def == FIELD_TIMESTAMP {
+                                new_timestamp = byte_array_to_uint32(data, is_big_endian);
+                            }
+                            else if def.field_def == FIELD_PART_INDEX {
+                                panic!("Part Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
+                            }
+
+                            // Normal field.
+                            else {
+                                match def.base_type {
+                                    0x00 => { field.num_uint = byte_array_to_uint8(data) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                                    0x01 => { field.num_sint = byte_array_to_sint8(data) as i64; field.field_type = FieldType::FieldTypeSInt; },
+                                    0x02 => { field.num_uint = byte_array_to_uint8(data) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                                    0x83 => { field.num_sint = byte_array_to_sint16(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
+                                    0x84 => { field.num_uint = byte_array_to_uint16(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                                    0x85 => { field.num_sint = byte_array_to_sint32(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
+                                    0x86 => { field.num_uint = byte_array_to_uint32(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                                    0x07 => { field.string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; },
+                                    0x88 => { field.num_float = byte_array_to_float(data, 4, is_big_endian); field.field_type = FieldType::FieldTypeFloat; },
+                                    0x89 => { field.num_float = byte_array_to_float(data, 8, is_big_endian); field.field_type = FieldType::FieldTypeFloat; },
+                                    0x0A => { field.num_uint = byte_array_to_uint8(data) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                                    0x8B => { field.num_uint = byte_array_to_uint16(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                                    0x8C => { field.num_uint = byte_array_to_uint32(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                                    0x0D => { field.byte_array = data; field.field_type = FieldType::FieldTypeByteArray; },
+                                    0x8E => { field.num_sint = byte_array_to_sint64(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
+                                    0x8F => { field.num_uint = byte_array_to_uint64(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                                    0x90 => { field.num_uint = byte_array_to_uint64(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                                    _ => { panic!("Base Type not implemented {:#x}", def.base_type); }
+                                }
+                                fields.push(field);
+                            }
                         }
-                        fields.push(field);
-                    }
-                }
 
-                // Tell the people.
-                callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields);
-            },
+                        // Tell the people.
+                        callback(state.timestamp, state.current_global_msg_num, local_msg_type, fields);
+                    },
+                    None    => {
+                        let e = Error::new(std::io::ErrorKind::Other, "Message definition not found.");
+                        return Err(e);
+                    },
+                }
+            }
             None    => {
-                let e = Error::new(std::io::ErrorKind::Other, "Message definition not found.");
+                let e = Error::new(std::io::ErrorKind::Other, "Message endianness not found.");
                 return Err(e);
             },
         }
