@@ -23,6 +23,8 @@ mod fit;
 
 #[cfg(test)]
 mod tests {
+
+    /// Called for each record message as it is processed.
     fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>) {
         if global_message_num == crate::fit::GLOBAL_MSG_NUM_SESSION {
             let msg = crate::fit::FitSessionMsg::new(fields);
@@ -34,7 +36,7 @@ mod tests {
         }
         else if global_message_num == crate::fit::GLOBAL_MSG_NUM_RECORD {
             let msg = crate::fit::FitRecordMsg::new(fields);
-            //println!("Lat {} Lon {}", msg.position_lat.unwrap(), msg.position_long.unwrap());
+            //println!("Lat {:#08x} Lon {:#08x}", msg.position_lat.unwrap(), msg.position_long.unwrap());
             //println!("Lat {} Lon {}", crate::fit::semicircles_to_degrees(msg.position_lat.unwrap()), crate::fit::semicircles_to_degrees(msg.position_long.unwrap()));
         }
         else {
@@ -67,8 +69,8 @@ mod tests {
         let fit = crate::fit::read(&mut reader, callback);
 
         match fit {
-            Ok(fit2) => {
-                fit2.header.print();
+            Ok(fit) => {
+                fit.header.print();
             }
             _ => (),
         }
@@ -81,8 +83,8 @@ mod tests {
         let fit = crate::fit::read(&mut reader, callback);
 
         match fit {
-            Ok(fit2) => {
-                fit2.header.print();
+            Ok(fit) => {
+                fit.header.print();
             }
             _ => (),
         }
@@ -95,8 +97,8 @@ mod tests {
         let fit = crate::fit::read(&mut reader, callback);
 
         match fit {
-            Ok(fit2) => {
-                fit2.header.print();
+            Ok(fit) => {
+                fit.header.print();
             }
             _ => (),
         }
