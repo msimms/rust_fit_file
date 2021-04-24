@@ -211,7 +211,7 @@ pub const FIT_STROKE_TYPE_BACKHAND: u8 = 4;
 pub const FIT_STROKE_TYPE_SMASH: u8 = 5;
 pub const FIT_STROKE_TYPE_COUNT: u8 = 6;
 
-type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, data: Vec<FieldValue>);
+type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, data: Vec<FitFieldValue>);
 
 pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     let mut global_msg_name_map = HashMap::<u16, String>::new();
@@ -584,8 +584,9 @@ pub struct FitSessionMsg {
 }
 
 impl FitSessionMsg {
+
     /// Constructor: Takes the fields that were read by the file parser and puts them into a structure.
-    pub fn new(fields: Vec<FieldValue>) -> Self {
+    pub fn new(fields: Vec<FitFieldValue>) -> Self {
         let mut msg = FitSessionMsg{ event: None, event_type: None, start_time: None, start_position_lat: None, start_position_long: None, sport: None,
             total_elapsed_time: None, total_timer_time: None, total_distance: None, total_cycles: None, total_calories: None, total_fat_calories: None,
             avg_speed: None, max_speed: None, avg_heart_rate: None, max_heart_rate: None, avg_cadence: None, max_cadence: None, avg_power: None, max_power: None,
@@ -700,7 +701,7 @@ pub struct FitDeviceInfoMsg {
 impl FitDeviceInfoMsg {
 
     /// Constructor: Takes the fields that were read by the file parser and puts them into a structure.
-    pub fn new(fields: Vec<FieldValue>) -> Self {
+    pub fn new(fields: Vec<FitFieldValue>) -> Self {
         let mut msg = FitDeviceInfoMsg{ timestamp: None, serial_number: None, cum_operating_time: None, product_name: None, manufacturer: None,
             product: None, software_version: None, battery_voltage: None, ant_device_number: None, device_index: None, device_type: None,
             battery_status: None, hardware_version: None, descriptor: None, ant_transmission_type: None, source_type: None };
@@ -784,7 +785,7 @@ pub struct FitRecordMsg {
 impl FitRecordMsg {
 
     /// Constructor: Takes the fields that were read by the file parser and puts them into a structure.
-    pub fn new(fields: Vec<FieldValue>) -> Self {
+    pub fn new(fields: Vec<FitFieldValue>) -> Self {
 
         let mut msg = FitRecordMsg{ timestamp: None, position_lat: None, position_long: None, distance: None, time_from_course: None, total_cycles: None, accumulated_power: None,
             enhanced_speed: None, enhanced_altitude: None, altitude: None, speed: None, power: None, grade: None, compressed_accumulated_power: None, vertical_speed: None,
@@ -829,7 +830,7 @@ pub enum FieldType {
     FieldTypeStr // Value is a tring
 }
 
-pub struct FieldValue {
+pub struct FitFieldValue {
     pub field_def: u8, // From the message definition
     pub field_type: FieldType, // Tells us which of the following to use
     pub num_uint: u64,
@@ -839,9 +840,9 @@ pub struct FieldValue {
     pub string: String
 }
 
-impl FieldValue {
+impl FitFieldValue {
     pub fn new() -> Self {
-        let state = FieldValue{ field_def: 0, field_type: FieldType::FieldTypeNotSet, num_uint: 0, num_sint: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
+        let state = FitFieldValue{ field_def: 0, field_type: FieldType::FieldTypeNotSet, num_uint: 0, num_sint: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
         state
     }
 
@@ -1161,7 +1162,7 @@ impl FitRecord {
                         let mut fields = Vec::new();
                         for def in field_defs.iter() {
 
-                            let mut field = FieldValue::new();
+                            let mut field = FitFieldValue::new();
                             field.field_def = def.field_def;
 
                             // Read the number of bytes prescribed by the field definition.

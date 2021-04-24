@@ -20,6 +20,7 @@
 // SOFTWARE.
 
 pub use crate::fit_file::read;
+pub use crate::fit_file::FitFieldValue;
 
 mod fit_file;
 
@@ -27,7 +28,7 @@ mod fit_file;
 mod tests {
 
     /// Called for each record message as it is processed.
-    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit_file::FieldValue>) {
+    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit_file::FitFieldValue>) {
 
         if global_message_num == crate::fit_file::GLOBAL_MSG_NUM_SESSION {
             let msg = crate::fit_file::FitSessionMsg::new(fields);
