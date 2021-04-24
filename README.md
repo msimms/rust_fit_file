@@ -3,7 +3,7 @@ FIT file parser written in Rust. FIT (Flexible and Interoperable Data Transfer) 
 
 ## Example
 ```rust
-extern crate fit_file;
+extern crate fit;
 
 use std::io::BufReader;
 use std::fs::File;
@@ -27,7 +27,7 @@ fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields:
 fn main() {
     let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
     let mut reader = std::io::BufReader::new(file);
-    let fit = crate::fit_file::read(&mut reader, callback);
+    let fit = crate::fit::read(&mut reader, callback);
 }
 ```
 ## Current Status

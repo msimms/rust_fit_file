@@ -1,12 +1,12 @@
 [package]
-name = "fit"
+name = "fit_file"
 description = "Reads FIT (Flexible and Interoperable Data Transfer) files"
 license = "MIT"
 readme = "README.md" 
 keywords = ["fit"] 
 version = "0.1.0"
 authors = ["Mike Simms <msimms01@gmail.com>"]
-repository = "https://github.com/msimms/rust_fit"
+repository = "https://github.com/msimms/rust_fit_file"
 edition = "2018"
 
 [dependencies]
