@@ -19,10 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub use crate::fit_file::read;
-pub use crate::fit_file::FitFieldValue;
-
-mod fit_file;
+pub mod fit_file;
 
 #[cfg(test)]
 mod tests {
@@ -36,10 +33,6 @@ mod tests {
             let sport_id = msg.sport.unwrap();
 
             println!("Sport: {}", sport_names.get(&sport_id).unwrap());
-        }
-        else if global_message_num == crate::fit_file::GLOBAL_MSG_NUM_DEVICE_INFO {
-            let msg = crate::fit_file::FitDeviceInfoMsg::new(fields);
-
         }
         else if global_message_num == crate::fit_file::GLOBAL_MSG_NUM_RECORD {
             let msg = crate::fit_file::FitRecordMsg::new(fields);
