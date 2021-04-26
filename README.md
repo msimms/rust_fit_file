@@ -9,7 +9,9 @@ use std::io::BufReader;
 use std::fs::File;
 
 /// Called for each record message as it is processed.
-fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit::FieldValue>) {
+fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit_file::FitFieldValue>, context: *mut c_void) {
+    let data: &mut Context = unsafe { &mut *(context as *mut Context) };
+
     if global_message_num == crate::fit::GLOBAL_MSG_NUM_SESSION {
         let msg = crate::fit::FitSessionMsg::new(fields);
         let sport_names = crate::fit::init_sport_name_map();
@@ -31,8 +33,8 @@ struct Context {
 
 impl Context {
     pub fn new() -> Self {
-        let msg = Context{ num_records_processed: 0 };
-        msg
+        let context = Context{ num_records_processed: 0 };
+        context
     }
 }
 
