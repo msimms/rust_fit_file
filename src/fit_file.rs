@@ -27,6 +27,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::{Error};
 use std::convert::TryInto;
+use std::ffi::c_void;
 
 const HEADER_FILE_SIZE_OFFSET: usize = 0;
 const HEADER_PROTOCOL_VERSION_OFFSET: usize = 1;
@@ -211,7 +212,7 @@ pub const FIT_STROKE_TYPE_BACKHAND: u8 = 4;
 pub const FIT_STROKE_TYPE_SMASH: u8 = 5;
 pub const FIT_STROKE_TYPE_COUNT: u8 = 6;
 
-type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, data: Vec<FitFieldValue>);
+type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, data: Vec<FitFieldValue>, context: *mut c_void);
 
 pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     let mut global_msg_name_map = HashMap::<u16, String>::new();
@@ -1135,7 +1136,7 @@ impl FitRecord {
     }
 
     /// Assumes the buffer is pointing to the beginning of the data message, reads the message.
-    fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback) -> Result<()> {
+    fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
 
         // Local message type. The local message type is stored differently for compressed data headers.
         let local_msg_type;
@@ -1207,7 +1208,7 @@ impl FitRecord {
 
                         // Tell the people.
                         // Also convert the FIT timestamp to UNIX. FIT timestamps are seconds since UTC 00:00:00 Dec 31 1989.
-                        callback(631065600 + state.timestamp, state.current_global_msg_num, local_msg_type, fields);
+                        callback(631065600 + state.timestamp, state.current_global_msg_num, local_msg_type, fields, context);
                     },
                     None    => {
                         let e = Error::new(std::io::ErrorKind::Other, "Message definition not found.");
@@ -1228,7 +1229,7 @@ impl FitRecord {
     }
 
     /// Assumes the buffer is pointing to the beginning of the compressed timestamp message, reads the message.
-    fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback) -> Result<()> {
+    fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
 
         // Compressed Timestamp Header.
         let time_offset = (header_byte & 0x1f) as u32;
@@ -1240,13 +1241,13 @@ impl FitRecord {
         }
 
         // Read the data fields that follow.
-        self.read_data_message(reader, header_byte, state, callback)?;
+        self.read_data_message(reader, header_byte, state, callback, context)?;
 
         Ok(())
     }
 
     /// Assumes the buffer is pointing to the beginning of the normal message, reads the message.
-    fn read_normal_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback) -> Result<()> {
+    fn read_normal_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
 
         // Reserve bit should be zero in normal messages.
         if header_byte & RECORD_HDR_RESERVED != 0 {
@@ -1259,14 +1260,14 @@ impl FitRecord {
             self.read_definition_message(reader, header_byte, state)?;
         }
         else {
-            self.read_data_message(reader, header_byte, state, callback)?;
+            self.read_data_message(reader, header_byte, state, callback, context)?;
         }
 
         Ok(())
     }
 
     /// Assumes the buffer is pointing to the beginning of the next record message, reads the message.
-    fn read<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState, callback: Callback) -> Result<()> {
+    fn read<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
 
         // The first byte is a bit field that tells us more about the record.
         let header_byte = read_byte(reader)?;
@@ -1274,10 +1275,10 @@ impl FitRecord {
         // Normal header or compressed timestamp header?
         // A value of zero indicates a normal header.
         if header_byte & RECORD_HDR_NORMAL != 0 {
-            self.read_compressed_timestamp_message(reader, header_byte, state, callback)?;
+            self.read_compressed_timestamp_message(reader, header_byte, state, callback, context)?;
         }
         else {
-            self.read_normal_message(reader, header_byte, state, callback)?;
+            self.read_normal_message(reader, header_byte, state, callback, context)?;
         }
 
         Ok(())
@@ -1315,7 +1316,7 @@ impl Fit {
     }
 
     /// Reads the FIT data from the buffer.
-    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>, callback: Callback) -> Result<()> {
+    pub fn read<R: Read>(&mut self, reader: &mut BufReader<R>, callback: Callback, context: *mut c_void) -> Result<()> {
 
         // Read the file header.
         self.header.read(reader)?;
@@ -1328,7 +1329,7 @@ impl Fit {
             // Read each record.
             while !reader.buffer().is_empty() {
                 let mut record = FitRecord::new();
-                record.read(reader, &mut state, callback)?;
+                record.read(reader, &mut state, callback, context)?;
             }
 
             // Read the CRC.
@@ -1339,9 +1340,9 @@ impl Fit {
     }
 }
 
-pub fn read<R: Read>(reader: &mut BufReader<R>, callback: Callback) -> Result<Fit> {
+pub fn read<R: Read>(reader: &mut BufReader<R>, callback: Callback, context: *mut c_void) -> Result<Fit> {
     let mut fit: Fit = Fit::new();
-    fit.read(reader, callback)?;
+    fit.read(reader, callback, context)?;
 
     Ok(fit)
 }

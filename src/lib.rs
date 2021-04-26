@@ -23,9 +23,10 @@ pub mod fit_file;
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::c_void;
 
     /// Called for each record message as it is processed.
-    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit_file::FitFieldValue>) {
+    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit_file::FitFieldValue>, context: *mut c_void) {
 
         if global_message_num == crate::fit_file::GLOBAL_MSG_NUM_SESSION {
             let msg = crate::fit_file::FitSessionMsg::new(fields);
@@ -38,6 +39,10 @@ mod tests {
             let msg = crate::fit_file::FitRecordMsg::new(fields);
 
             println!("Timestamp: {} Latitude: {} Longitude: {}", timestamp, crate::fit_file::semicircles_to_degrees(msg.position_lat.unwrap()), crate::fit_file::semicircles_to_degrees(msg.position_long.unwrap()));
+
+            // Increment the number of records processed.
+            let data: &mut Context = unsafe { &mut *(context as *mut Context) };
+            data.num_records_processed = data.num_records_processed + 1;
         }
         else {
             let global_message_names = crate::fit_file::init_global_msg_name_map();
@@ -63,15 +68,30 @@ mod tests {
         }
     }
 
+    /// Context structure. An instance of this will be passed to the parser and ultimately to the callback function so we can use it for whatever.
+    struct Context {
+        num_records_processed: u16,
+    }
+
+    impl Context {
+        pub fn new() -> Self {
+            let msg = Context{ num_records_processed: 0 };
+            msg
+        }
+    }
+
     #[test]
     fn file1_zwift() {
         let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
-        let fit = crate::fit_file::read(&mut reader, callback);
+        let mut context = Context::new();
+        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
+        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
 
         match fit {
             Ok(fit) => {
                 fit.header.print();
+                println!("Num records processed: {}", context.num_records_processed);
             }
             _ => (),
         }
@@ -81,11 +101,14 @@ mod tests {
     fn file2_bike() {
         let file = std::fs::File::open("tests/20191117_bike_wahoo_elemnt.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
-        let fit = crate::fit_file::read(&mut reader, callback);
+        let mut context = Context::new();
+        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
+        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
 
         match fit {
             Ok(fit) => {
                 fit.header.print();
+                println!("Num records processed: {}", context.num_records_processed);
             }
             _ => (),
         }
@@ -95,11 +118,14 @@ mod tests {
     fn file3_swim() {
         let file = std::fs::File::open("tests/20200529_short_ocean_swim.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
-        let fit = crate::fit_file::read(&mut reader, callback);
+        let mut context = Context::new();
+        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
+        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
 
         match fit {
             Ok(fit) => {
                 fit.header.print();
+                println!("Num records processed: {}", context.num_records_processed);
             }
             _ => (),
         }

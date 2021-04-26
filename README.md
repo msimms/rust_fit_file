@@ -24,10 +24,24 @@ fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields:
     }
 }
 
+/// Context structure. An instance of this will be passed to the parser and ultimately to the callback function so we can use it for whatever.
+struct Context {
+    num_records_processed: u16,
+}
+
+impl Context {
+    pub fn new() -> Self {
+        let msg = Context{ num_records_processed: 0 };
+        msg
+    }
+}
+
 fn main() {
     let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
     let mut reader = std::io::BufReader::new(file);
-    let fit = crate::fit::read(&mut reader, callback);
+    let mut context = Context::new();
+    let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
+    let fit = crate::fit::read(&mut reader, callback, context_ptr);
 }
 ```
 ## Current Status
