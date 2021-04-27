@@ -75,12 +75,12 @@ mod tests {
 
     impl Context {
         pub fn new() -> Self {
-            let msg = Context{ num_records_processed: 0 };
-            msg
+            let context = Context{ num_records_processed: 0 };
+            context
         }
     }
 
-    #[test]
+    //#[test]
     fn file1_zwift() {
         let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
@@ -93,7 +93,7 @@ mod tests {
                 fit.header.print();
                 println!("Num records processed: {}", context.num_records_processed);
             }
-            _ => (),
+            _ => { println!("Error"); },
         }
     }
 
@@ -110,11 +110,11 @@ mod tests {
                 fit.header.print();
                 println!("Num records processed: {}", context.num_records_processed);
             }
-            _ => (),
+            _ => { println!("Error"); },
         }
     }
 
-    #[test]
+    //#[test]
     fn file3_swim() {
         let file = std::fs::File::open("tests/20200529_short_ocean_swim.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
