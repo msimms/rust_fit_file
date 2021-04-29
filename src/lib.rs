@@ -24,6 +24,8 @@ pub mod fit_file;
 #[cfg(test)]
 mod tests {
     use std::ffi::c_void;
+    use std::collections::HashMap;
+    extern crate csv;
 
     /// Called for each record message as it is processed.
     fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit_file::FitFieldValue>, context: *mut c_void) {
@@ -80,7 +82,7 @@ mod tests {
         }
     }
 
-    //#[test]
+    #[test]
     fn file1_zwift() {
         let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
@@ -114,7 +116,7 @@ mod tests {
         }
     }
 
-    //#[test]
+    #[test]
     fn file3_swim() {
         let file = std::fs::File::open("tests/20200529_short_ocean_swim.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
@@ -128,6 +130,83 @@ mod tests {
                 println!("Num records processed: {}", context.num_records_processed);
             }
             _ => (),
+        }
+    }
+
+
+    fn print_messag_struct(name: String, field_map: &HashMap::<String, u8>) {
+        println!("pub struct {} {{", name);
+        for (field_name, field_id) in field_map {
+            println!("    pub {}: Option<>,", field_name);
+        }
+        println!("}}");
+        println!("");
+        println!("impl {} {{", name);
+        println!("");
+        println!("    /// Constructor: Takes the fields that were read by the file parser and puts them into a structure.");
+        println!("    pub fn new(fields: Vec<FitFieldValue>) -> Self {{");
+        print!("        let mut msg = {} {{", name);
+        let mut split_count = 0;
+        for (field_name, _field_id) in field_map {
+            print!("{}: None, ", field_name);
+            if split_count % 3 == 0 {
+                println!("");
+                print!("            ");
+            }
+            split_count = split_count + 1;
+        }
+        println!("");
+        println!("        }}");
+        println!("");
+        println!("        for field in fields {{");
+        println!("            match field.field_def {{");
+        for (field_name, field_id) in field_map {
+            println!("                {} => {{ msg.{} = Some(field.get ()); }},", field_id, field_name);
+        }
+        println!("");
+        println!("            }}");
+        println!("        }}");
+        println!("        msg");
+        println!("    }}");
+        println!("}}");
+        println!("");
+    }
+
+    #[test]
+    fn create_message_structs() {
+        let file_path = "tests/Messages-Table.csv";
+        let file = match std::fs::File::open(&file_path) {
+            Err(why) => panic!("Couldn't open {} {}", file_path, why),
+            Ok(file) => file,
+        };
+
+        let mut reader = csv::Reader::from_reader(file);
+        let mut current_msg_name = String::new();
+        let mut field_map = HashMap::<String, u8>::new();
+
+        for record in reader.records() {
+            let record = record.unwrap();
+
+            // First column is the message name.
+            let msg_name: String = record[0].parse().unwrap();
+            if msg_name.len() > 0 {
+
+                // Print the previous definition, if there is one.
+                if current_msg_name.len() > 0 {
+                    print_messag_struct(current_msg_name, &field_map);
+                }
+
+                current_msg_name = String::from(msg_name);
+            }
+            else {
+                let field_id = &record[1];
+                if field_id.len() > 0 {
+                    let field_id_num: u8 = field_id.parse::<u8>().unwrap();
+                    let field_name: String = record[2].parse().unwrap();
+
+                    field_map.insert(field_name, field_id_num);
+                }
+            }
         }
     }
 }
