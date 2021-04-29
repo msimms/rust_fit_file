@@ -133,21 +133,43 @@ mod tests {
         }
     }
 
+    fn convert_to_camel_case(name: &String) -> String {
+        let mut new_name = String::new();
+        let mut need_upper_case = true;
 
-    fn print_messag_struct(name: String, field_map: &HashMap::<String, u8>) {
-        println!("pub struct {} {{", name);
-        for (field_name, field_id) in field_map {
-            println!("    pub {}: Option<>,", field_name);
+        for c in name.chars() { 
+            if need_upper_case {
+                new_name.push(c.to_ascii_uppercase());
+                need_upper_case = false;
+            }
+            else if c == '_' {
+                need_upper_case = true;
+            }
+            else {
+                new_name.push(c);
+            }
+        }
+        new_name
+    }
+
+    fn print_message_struct(name: String, field_map: &HashMap::<String, (u8, String)>) {
+        let mut struct_name: String = "Fit".to_string();
+        struct_name.push_str(&convert_to_camel_case(&name));
+        struct_name.push_str("Msg");
+
+        println!("pub struct {} {{", struct_name);
+        for (field_name, (_field_id, field_type)) in field_map {
+            println!("    pub {}: Option<{}>,", field_name, *field_type);
         }
         println!("}}");
         println!("");
-        println!("impl {} {{", name);
+        println!("impl {} {{", struct_name);
         println!("");
         println!("    /// Constructor: Takes the fields that were read by the file parser and puts them into a structure.");
         println!("    pub fn new(fields: Vec<FitFieldValue>) -> Self {{");
-        print!("        let mut msg = {} {{", name);
+        print!("        let mut msg = {} {{ ", struct_name);
         let mut split_count = 0;
-        for (field_name, _field_id) in field_map {
+        for (field_name, _field_details) in field_map {
             print!("{}: None, ", field_name);
             if split_count % 3 == 0 {
                 println!("");
@@ -156,12 +178,12 @@ mod tests {
             split_count = split_count + 1;
         }
         println!("");
-        println!("        }}");
+        println!("        }};");
         println!("");
         println!("        for field in fields {{");
         println!("            match field.field_def {{");
-        for (field_name, field_id) in field_map {
-            println!("                {} => {{ msg.{} = Some(field.get ()); }},", field_id, field_name);
+        for (field_name, (field_id, field_type)) in field_map {
+            println!("                {} => {{ msg.{} = Some(field.get_{}()); }},", field_id, field_name, *field_type);
         }
         println!("");
         println!("            }}");
@@ -182,7 +204,7 @@ mod tests {
 
         let mut reader = csv::Reader::from_reader(file);
         let mut current_msg_name = String::new();
-        let mut field_map = HashMap::<String, u8>::new();
+        let mut field_map = HashMap::<String, (u8, String)>::new();
 
         for record in reader.records() {
             let record = record.unwrap();
@@ -193,18 +215,59 @@ mod tests {
 
                 // Print the previous definition, if there is one.
                 if current_msg_name.len() > 0 {
-                    print_messag_struct(current_msg_name, &field_map);
+                    print_message_struct(current_msg_name, &field_map);
                 }
 
                 current_msg_name = String::from(msg_name);
+                field_map.clear();
             }
             else {
                 let field_id = &record[1];
+
                 if field_id.len() > 0 {
                     let field_id_num: u8 = field_id.parse::<u8>().unwrap();
                     let field_name: String = record[2].parse().unwrap();
+                    let mut field_type_str: String = record[3].parse().unwrap();
 
-                    field_map.insert(field_name, field_id_num);
+                    // Normalize the field type string.
+                    if field_type_str == "byte" {
+                        field_type_str = "u8".to_string();
+                    }
+                    else if field_type_str == "uint8" {
+                        field_type_str = "u8".to_string();
+                    }
+                    else if field_type_str == "uint8z" {
+                        field_type_str = "u8".to_string();
+                    }
+                    else if field_type_str == "uint16" {
+                        field_type_str = "u16".to_string();
+                    }
+                    else if field_type_str == "uint16z" {
+                        field_type_str = "u16".to_string();
+                    }
+                    else if field_type_str == "uint32" {
+                        field_type_str = "u32".to_string();
+                    }
+                    else if field_type_str == "uint32z" {
+                        field_type_str = "u32".to_string();
+                    }
+                    else if field_type_str == "sint8" {
+                        field_type_str = "i8".to_string();
+                    }
+                    else if field_type_str == "sint16" {
+                        field_type_str = "i16".to_string();
+                    }
+                    else if field_type_str == "sint32" {
+                        field_type_str = "i32".to_string();
+                    }
+                    else if field_type_str == "float32" {
+                        field_type_str = "f32".to_string();
+                    }
+                    else if field_type_str == "float64" {
+                        field_type_str = "f64".to_string();
+                    }
+
+                    field_map.insert(field_name, (field_id_num, field_type_str));
                 }
             }
         }
