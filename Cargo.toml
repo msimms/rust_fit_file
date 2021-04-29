@@ -10,4 +10,4 @@ repository = "https://github.com/msimms/rust_fit_file"
 edition = "2018"
 
 [dependencies]
-csv = "*"
+csv = "1"
