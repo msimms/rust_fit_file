@@ -18,6 +18,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+ #![allow(dead_code)]
 
 pub mod fit_file;
 
@@ -28,7 +29,7 @@ mod tests {
     extern crate csv;
 
     /// Called for each record message as it is processed.
-    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, fields: Vec<crate::fit_file::FitFieldValue>, context: *mut c_void) {
+    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, _message_index: u16, fields: Vec<crate::fit_file::FitFieldValue>, context: *mut c_void) {
 
         if global_message_num == crate::fit_file::GLOBAL_MSG_NUM_SESSION {
             let msg = crate::fit_file::FitSessionMsg::new(fields);
@@ -101,7 +102,7 @@ mod tests {
 
     #[test]
     fn file2_bike() {
-        let file = std::fs::File::open("tests/20191117_bike_wahoo_elemnt.fit").unwrap();
+        let file = std::fs::File::open("/Users/mike/Code/GitHub/TestFilesForFitnessApps/fit/20130720_run_garmin_forerunner_10.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let mut context = Context::new();
         let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;

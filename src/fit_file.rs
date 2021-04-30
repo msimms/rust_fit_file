@@ -212,7 +212,7 @@ pub const FIT_STROKE_TYPE_BACKHAND: u8 = 4;
 pub const FIT_STROKE_TYPE_SMASH: u8 = 5;
 pub const FIT_STROKE_TYPE_COUNT: u8 = 6;
 
-type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, data: Vec<FitFieldValue>, context: *mut c_void);
+type Callback = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, message_index: u16, data: Vec<FitFieldValue>, context: *mut c_void);
 
 pub fn init_global_msg_name_map() -> HashMap<u16, String> {
     let mut global_msg_name_map = HashMap::<u16, String>::new();
@@ -1180,19 +1180,20 @@ impl FitHeader {
 /// Parses FIT file records.
 #[derive(Debug, Default)]
 struct FitRecord {
+    pub header_byte: u8
 }
 
 impl FitRecord {
     pub fn new() -> Self {
-        let rec = FitRecord{ };
+        let rec = FitRecord{ header_byte: 0 };
         rec
     }
 
     /// Assumes the buffer is pointing to the beginning of the definition message, reads the message, and updates the field definitions.
-    fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState) -> Result<()> {
+    fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState) -> Result<()> {
 
         // Local message type.
-        let local_msg_type = header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
+        let local_msg_type = self.header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
 
         // Definition message (5 bytes).
         // 0: Reserved
@@ -1226,7 +1227,7 @@ impl FitRecord {
         }
 
         // Is there any developer information in this record?
-        if header_byte & RECORD_HDR_MSG_TYPE_SPECIFIC != 0 {
+        if self.header_byte & RECORD_HDR_MSG_TYPE_SPECIFIC != 0 {
 
             // Read the number of developer fields (1 byte).
             let num_dev_fields = read_byte(reader)?;
@@ -1252,15 +1253,15 @@ impl FitRecord {
     }
 
     /// Assumes the buffer is pointing to the beginning of the data message, reads the message.
-    fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
+    fn read_data_message<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
 
         // Local message type. The local message type is stored differently for compressed data headers.
         let local_msg_type;
-        if header_byte & RECORD_HDR_NORMAL != 0 {
-            local_msg_type = (header_byte & RECORD_HDR_LOCAL_MSG_TYPE_COMPRESSED) >> 5;
+        if self.header_byte & RECORD_HDR_NORMAL != 0 {
+            local_msg_type = (self.header_byte & RECORD_HDR_LOCAL_MSG_TYPE_COMPRESSED) >> 5;
         }
         else {
-            local_msg_type = header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
+            local_msg_type = self.header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
         }
 
         // The timestamp may get updated.
@@ -1270,13 +1271,16 @@ impl FitRecord {
         let ( field_defs, is_big_endian_ref ) = state.retrieve_msg_def(state.current_global_msg_num, local_msg_type);
         match is_big_endian_ref {
             Some(is_big_endian_ref) => {
+
                 let is_big_endian = *is_big_endian_ref;
 
                 match field_defs {
                     Some(field_defs) => {
 
-                        // Read data for each message definition.
                         let mut fields = Vec::new();
+                        let mut message_index: u16 = 0;
+
+                        // Read data for each message definition.
                         for def in field_defs.iter() {
 
                             let mut field = FitFieldValue::new();
@@ -1287,13 +1291,13 @@ impl FitRecord {
 
                             // Is this a special field, like a timestamp?
                             if def.field_def == FIELD_MSG_INDEX {
-                                panic!("Message Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
+                                message_index = byte_array_to_sint16(data, is_big_endian) as u16;
                             }
                             else if def.field_def == FIELD_TIMESTAMP {
                                 new_timestamp = byte_array_to_uint32(data, is_big_endian);
                             }
                             else if def.field_def == FIELD_PART_INDEX {
-                                panic!("Part Index not implemented: global message num: {} local message type: {}.", state.current_global_msg_num, local_msg_type);
+                                panic!("Part Index not implemented: Global Message Num: {} Local Message Type: {}.", state.current_global_msg_num, local_msg_type);
                             }
 
                             // Normal field.
@@ -1324,16 +1328,17 @@ impl FitRecord {
 
                         // Tell the people.
                         // Also convert the FIT timestamp to UNIX. FIT timestamps are seconds since UTC 00:00:00 Dec 31 1989.
-                        callback(631065600 + state.timestamp, state.current_global_msg_num, local_msg_type, fields, context);
+                        callback(631065600 + state.timestamp, state.current_global_msg_num, local_msg_type, message_index, fields, context);
                     },
                     None    => {
-                        let e = Error::new(std::io::ErrorKind::Other, "Message definition not found.");
+                        let e = Error::new(std::io::ErrorKind::NotFound, "Field definition not found.");
                         return Err(e);
                     },
                 }
             }
             None    => {
-                let e = Error::new(std::io::ErrorKind::Other, "Message endianness not found.");
+                let msg = format!("Message definition not found: Global Message Num: {} Local Message Type: {}.", state.current_global_msg_num, local_msg_type);
+                let e = Error::new(std::io::ErrorKind::NotFound, msg);
                 return Err(e);
             },
         }
@@ -1345,10 +1350,10 @@ impl FitRecord {
     }
 
     /// Assumes the buffer is pointing to the beginning of the compressed timestamp message, reads the message.
-    fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
+    fn read_compressed_timestamp_message<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
 
         // Compressed Timestamp Header.
-        let time_offset = (header_byte & 0x1f) as u32;
+        let time_offset = (self.header_byte & 0x1f) as u32;
         if time_offset >= state.timestamp & 0x0000001F { // offset value is greater than least significant 5 bits of previous timestamp
             state.timestamp = (state.timestamp & 0xFFFFFFE0) + time_offset;
         }
@@ -1357,26 +1362,26 @@ impl FitRecord {
         }
 
         // Read the data fields that follow.
-        self.read_data_message(reader, header_byte, state, callback, context)?;
+        self.read_data_message(reader, state, callback, context)?;
 
         Ok(())
     }
 
     /// Assumes the buffer is pointing to the beginning of the normal message, reads the message.
-    fn read_normal_message<R: Read>(&mut self, reader: &mut BufReader<R>, header_byte: u8, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
+    fn read_normal_message<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
 
         // Reserve bit should be zero in normal messages.
-        if header_byte & RECORD_HDR_RESERVED != 0 {
+        if self.header_byte & RECORD_HDR_RESERVED != 0 {
             panic!("Reserve bit set");
         }
 
         // Data or definition message?
         // A value of zero indicates a data message.
-        if header_byte & RECORD_HDR_MSG_TYPE != 0 {
-            self.read_definition_message(reader, header_byte, state)?;
+        if self.header_byte & RECORD_HDR_MSG_TYPE != 0 {
+            self.read_definition_message(reader, state)?;
         }
         else {
-            self.read_data_message(reader, header_byte, state, callback, context)?;
+            self.read_data_message(reader, state, callback, context)?;
         }
 
         Ok(())
@@ -1386,15 +1391,15 @@ impl FitRecord {
     fn read<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState, callback: Callback, context: *mut c_void) -> Result<()> {
 
         // The first byte is a bit field that tells us more about the record.
-        let header_byte = read_byte(reader)?;
+        self.header_byte = read_byte(reader)?;
 
         // Normal header or compressed timestamp header?
         // A value of zero indicates a normal header.
-        if header_byte & RECORD_HDR_NORMAL != 0 {
-            self.read_compressed_timestamp_message(reader, header_byte, state, callback, context)?;
+        if self.header_byte & RECORD_HDR_NORMAL != 0 {
+            self.read_compressed_timestamp_message(reader, state, callback, context)?;
         }
         else {
-            self.read_normal_message(reader, header_byte, state, callback, context)?;
+            self.read_normal_message(reader, state, callback, context)?;
         }
 
         Ok(())
@@ -1413,7 +1418,8 @@ impl Fit {
         fit
     }
 
-    fn check_crc(&self, crc: u16, byte: u8) {
+    /// CRC validation function.
+    fn check_crc(&self, crc: u16, byte: u8) -> u16{
         let crc_table: [u16; 16] = [
             0x0000, 0xCC01, 0xD801, 0x1400, 0xF001, 0x3C00, 0x2800, 0xE401,
             0xA001, 0x6C00, 0x7800, 0xB401, 0x5000, 0x9C01, 0x8801, 0x4400
@@ -1429,6 +1435,8 @@ impl Fit {
         tmp = crc_table[(crc2 & 0xf) as usize];
         crc2 = (crc2 >> 4) & 0x0fff;
         crc2 = crc2 ^ tmp ^ crc_table[((byte >> 4) & 0xf) as usize];
+        
+        crc2
     }
 
     /// Reads the FIT data from the buffer.
@@ -1441,11 +1449,21 @@ impl Fit {
         if self.header.validate() {
 
             let mut state = FitState::new();
+            let mut error = false;
 
             // Read each record.
-            while !reader.buffer().is_empty() {
+            while !(reader.buffer().is_empty() || error) {
+
                 let mut record = FitRecord::new();
-                record.read(reader, &mut state, callback, context)?;
+                let result = record.read(reader, &mut state, callback, context);
+
+                match result {
+                    Ok(_result) => {
+                    }
+                    Err(_e) => {
+                        error = true;
+                    }
+                }
             }
 
             // Read the CRC.
