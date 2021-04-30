@@ -1075,6 +1075,8 @@ impl FitRecordMsg {
                 71 => { msg.right_power_phase = Some(field.get_u8()); },
                 44 => { msg.right_torque_effectiveness = Some(field.get_u8()); },
                 95 => { msg.time_to_surface = Some(field.get_u32()); },
+                87 => { }, // Can't find a definition for these.
+                88 => { },
                 _ => { panic!("Record field not implemented {:#x}", field.field_def); }
             }
         }
@@ -1488,7 +1490,11 @@ impl FitRecord {
 
                         // Tell the people.
                         // Also convert the FIT timestamp to UNIX. FIT timestamps are seconds since UTC 00:00:00 Dec 31 1989.
-                        callback(631065600 + state.timestamp, state.current_global_msg_num, local_msg_type, message_index, fields, context);
+                        let mut display_timestamp = 0;
+                        if new_timestamp > 0 {
+                            display_timestamp = 631065600 + new_timestamp;
+                        }
+                        callback(display_timestamp, state.current_global_msg_num, local_msg_type, message_index, fields, context);
                     },
                     None    => {
                         let e = Error::new(std::io::ErrorKind::NotFound, "Field definition not found.");

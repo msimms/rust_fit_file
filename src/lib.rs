@@ -52,7 +52,7 @@ mod tests {
             let mut field_num = 1;
 
             match global_message_names.get(&global_message_num) {
-                Some(name) => print!("Callback for {} message, local message type {}, Timestamp {}, Values: ", name, local_msg_type, timestamp),
+                Some(name) => print!("Callback for {} message, Local Message Type {}, Timestamp {}, Values: ", name, local_msg_type, timestamp),
                 None => print!("Callback for Global Message Num {}, Local Message Type {} Timestamp {}, Values: ", global_message_num, local_msg_type, timestamp)
             }
 
@@ -86,7 +86,7 @@ mod tests {
         }
     }
 
-  //#[test]
+    #[test]
     fn file1_zwift() {
         let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
@@ -100,6 +100,7 @@ mod tests {
                 fit.header.print();
                 println!("");
                 println!("Num records processed: {}", context.num_records_processed);
+                assert!(context.num_records_processed == 1163);
             }
             _ => { println!("Error"); },
         }
@@ -119,6 +120,7 @@ mod tests {
                 fit.header.print();
                 println!("");
                 println!("Num records processed: {}", context.num_records_processed);
+                assert!(context.num_records_processed == 4876);
             }
             _ => { println!("Error"); },
         }
@@ -138,6 +140,7 @@ mod tests {
                 fit.header.print();
                 println!("");
                 println!("Num records processed: {}", context.num_records_processed);
+                assert!(context.num_records_processed == 179);
             }
             _ => (),
         }
