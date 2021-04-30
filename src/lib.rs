@@ -49,6 +49,7 @@ mod tests {
         }
         else {
             let global_message_names = crate::fit_file::init_global_msg_name_map();
+            let mut field_num = 1;
 
             match global_message_names.get(&global_message_num) {
                 Some(name) => print!("Callback for {} message, local message type {}, Timestamp {}, Values: ", name, local_msg_type, timestamp),
@@ -56,7 +57,7 @@ mod tests {
             }
 
             for field in fields {
-                print!("{} ", field.field_def);
+                print!("({}) Type: {}, Value: ", field_num, field.field_def);
 
                 match field.field_type {
                     crate::fit_file::FieldType::FieldTypeNotSet => { print!("[not set] "); },
@@ -66,6 +67,8 @@ mod tests {
                     crate::fit_file::FieldType::FieldTypeByteArray => {},
                     crate::fit_file::FieldType::FieldTypeStr => { print!("\"{}\" ", field.string); },
                 }
+
+                field_num = field_num + 1;
             }
             println!("");
         }
@@ -83,7 +86,7 @@ mod tests {
         }
     }
 
-    #[test]
+  //#[test]
     fn file1_zwift() {
         let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
@@ -93,7 +96,9 @@ mod tests {
 
         match fit {
             Ok(fit) => {
+                print!("Header: ");
                 fit.header.print();
+                println!("");
                 println!("Num records processed: {}", context.num_records_processed);
             }
             _ => { println!("Error"); },
@@ -102,7 +107,7 @@ mod tests {
 
     #[test]
     fn file2_bike() {
-        let file = std::fs::File::open("/Users/mike/Code/GitHub/TestFilesForFitnessApps/fit/20130720_run_garmin_forerunner_10.fit").unwrap();
+        let file = std::fs::File::open("tests/20191117_bike_wahoo_elemnt.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let mut context = Context::new();
         let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
@@ -110,7 +115,9 @@ mod tests {
 
         match fit {
             Ok(fit) => {
+                print!("Header: ");
                 fit.header.print();
+                println!("");
                 println!("Num records processed: {}", context.num_records_processed);
             }
             _ => { println!("Error"); },
@@ -127,7 +134,9 @@ mod tests {
 
         match fit {
             Ok(fit) => {
+                print!("Header: ");
                 fit.header.print();
+                println!("");
                 println!("Num records processed: {}", context.num_records_processed);
             }
             _ => (),
@@ -183,7 +192,7 @@ mod tests {
         println!("");
         println!("        for field in fields {{");
         println!("            match field.field_def {{");
-        for (field_name, (field_id, field_type)) in field_map {
+        for (field_name, (field_id, field_type)) in field_map.iter() {
             println!("                {} => {{ msg.{} = Some(field.get_{}()); }},", field_id, field_name, *field_type);
         }
         println!("");
