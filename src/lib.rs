@@ -52,8 +52,8 @@ mod tests {
             let mut field_num = 1;
 
             match global_message_names.get(&global_message_num) {
-                Some(name) => print!("Callback for {} message, Local Message Type {}, Timestamp {}, Values: ", name, local_msg_type, timestamp),
-                None => print!("Callback for Global Message Num {}, Local Message Type {} Timestamp {}, Values: ", global_message_num, local_msg_type, timestamp)
+                Some(name) => print!("{} message, Local Message Type {}, Timestamp {}, Values: ", name, local_msg_type, timestamp),
+                None => print!("Global Message Num {}, Local Message Type {} Timestamp {}, Values: ", global_message_num, local_msg_type, timestamp)
             }
 
             for field in fields {
@@ -64,7 +64,11 @@ mod tests {
                     crate::fit_file::FieldType::FieldTypeUInt => { print!("{} ", field.num_uint); },
                     crate::fit_file::FieldType::FieldTypeSInt => { print!("{} ", field.num_sint); },
                     crate::fit_file::FieldType::FieldTypeFloat => { print!("{} ", field.num_float); },
-                    crate::fit_file::FieldType::FieldTypeByteArray => {},
+                    crate::fit_file::FieldType::FieldTypeByteArray => {
+                        for byte in field.byte_array.iter() {
+                            print!("{:#04x} ", byte);
+                        }
+                    },
                     crate::fit_file::FieldType::FieldTypeStr => { print!("\"{}\" ", field.string); },
                 }
 
