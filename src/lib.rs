@@ -36,12 +36,12 @@ mod tests {
             let sport_names = crate::fit_file::init_sport_name_map();
             let sport_id = msg.sport.unwrap();
 
-            println!("Sport: {}", sport_names.get(&sport_id).unwrap());
+            println!("[Sport Message] {}", sport_names.get(&sport_id).unwrap());
         }
         else if global_message_num == crate::fit_file::GLOBAL_MSG_NUM_RECORD {
             let msg = crate::fit_file::FitRecordMsg::new(fields);
 
-            println!("Timestamp: {} Latitude: {} Longitude: {}", timestamp, crate::fit_file::semicircles_to_degrees(msg.position_lat.unwrap()), crate::fit_file::semicircles_to_degrees(msg.position_long.unwrap()));
+            println!("[Record Message] Timestamp: {} Latitude: {} Longitude: {}", timestamp, crate::fit_file::semicircles_to_degrees(msg.position_lat.unwrap()), crate::fit_file::semicircles_to_degrees(msg.position_long.unwrap()));
 
             // Increment the number of records processed.
             let data: &mut Context = unsafe { &mut *(context as *mut Context) };
@@ -52,8 +52,8 @@ mod tests {
             let mut field_num = 1;
 
             match global_message_names.get(&global_message_num) {
-                Some(name) => print!("{} message, Local Message Type {}, Timestamp {}, Values: ", name, local_msg_type, timestamp),
-                None => print!("Global Message Num {}, Local Message Type {} Timestamp {}, Values: ", global_message_num, local_msg_type, timestamp)
+                Some(name) => print!("[{} Message Local Message Type {}] Timestamp {}, Values: ", name, local_msg_type, timestamp),
+                None => print!("[Global Message Num {} Local Message Type {}] Timestamp {}, Values: ", global_message_num, local_msg_type, timestamp)
             }
 
             for field in fields {
@@ -100,7 +100,7 @@ mod tests {
 
         match fit {
             Ok(fit) => {
-                print!("Header: ");
+                print!("FIT File Header: ");
                 fit.header.print();
                 println!("");
                 println!("Num records processed: {}", context.num_records_processed);
@@ -120,7 +120,7 @@ mod tests {
 
         match fit {
             Ok(fit) => {
-                print!("Header: ");
+                print!("FIT File Header: ");
                 fit.header.print();
                 println!("");
                 println!("Num records processed: {}", context.num_records_processed);
@@ -140,7 +140,7 @@ mod tests {
 
         match fit {
             Ok(fit) => {
-                print!("Header: ");
+                print!("FIT File Header: ");
                 fit.header.print();
                 println!("");
                 println!("Num records processed: {}", context.num_records_processed);
