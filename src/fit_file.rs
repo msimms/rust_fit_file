@@ -1523,7 +1523,7 @@ impl FitRecord {
         // The first byte is a bit field that tells us more about the record.
         self.header_byte = read_byte(reader)?;
         state.bytes_read = state.bytes_read + 1;
-        println!("header_byte {:#04x} bytes_read {}", self.header_byte, state.bytes_read);
+        //println!("header_byte {:#04x} bytes_read {}", self.header_byte, state.bytes_read);
 
         // Normal header or compressed timestamp header?
         // A value of zero indicates a normal header.
@@ -1594,9 +1594,8 @@ impl Fit {
                 match result {
                     Ok(_result) => {
                     }
-                    Err(e) => {
-                        state.print();
-                        println!("Error: {} Bytes Read: {}", e, state.bytes_read);
+                    Err(_e) => {
+                        //println!("Error: {} Bytes Read: {}", e, state.bytes_read);
                         error = true;
                     }
                 }
