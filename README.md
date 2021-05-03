@@ -50,6 +50,7 @@ fn main() {
 Work in progress.
 
 ## Revision History
+* 0.3.0 - Fixed numerous issues interpreting the specification. Now passing with several Garmin test files, instead of just the original Wahoo test file.
 * 0.2.0 - Updated critical message structures by implementing a code generator that is just barely good enough.
 * 0.1.0 - Basic functionality, can extract position and timestamp data for run and cycling activities.
 
