@@ -40,8 +40,25 @@ mod tests {
         }
         else if global_message_num == crate::fit_file::GLOBAL_MSG_NUM_RECORD {
             let msg = crate::fit_file::FitRecordMsg::new(fields);
+            let mut latitude = 0.0;
+            let mut longitude = 0.0;
 
-            println!("[Record Message] Timestamp: {} Latitude: {} Longitude: {}", timestamp, crate::fit_file::semicircles_to_degrees(msg.position_lat.unwrap()), crate::fit_file::semicircles_to_degrees(msg.position_long.unwrap()));
+            match msg.position_lat {
+                Some(res) => {
+                    latitude = crate::fit_file::semicircles_to_degrees(res);
+                }
+                None => {
+                }
+            }
+            match msg.position_long {
+                Some(res) => {
+                    longitude = crate::fit_file::semicircles_to_degrees(res);
+                }
+                None => {
+                }
+            }
+
+            println!("[Record Message] Timestamp: {} Latitude: {} Longitude: {}", timestamp, latitude, longitude);
 
             // Increment the number of records processed.
             let data: &mut Context = unsafe { &mut *(context as *mut Context) };
