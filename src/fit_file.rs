@@ -429,6 +429,10 @@ fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize, is_big_endian: bool) -> u
 
     let mut num: u64 = 0;
 
+    if bytes.len() < num_bytes {
+        panic!("Unexpected length, got {} when expecting {}", bytes.len(), num_bytes);
+    }
+
     if is_big_endian {
         for i in 0..num_bytes {
             num = (num << 8) | (bytes[i] as u64);
@@ -1397,7 +1401,15 @@ impl FitRecord {
         }
 
         // Do we know about this message type?
+        if !state.endianness_map.contains_key(&local_msg_type) {
+            let e = Error::new(std::io::ErrorKind::NotFound, "Field definition not found.");
+            return Err(e);
+        }
         if !state.global_msg_map.contains_key(&local_msg_type) {
+            let e = Error::new(std::io::ErrorKind::NotFound, "Field definition not found.");
+            return Err(e);
+        }
+        if !state.local_msg_definitions.contains_key(&local_msg_type) {
             let e = Error::new(std::io::ErrorKind::NotFound, "Field definition not found.");
             return Err(e);
         }
@@ -1409,11 +1421,11 @@ impl FitRecord {
         let is_big_endian = *state.endianness_map.get(&local_msg_type).unwrap();
         let global_msg_num = *state.global_msg_map.get(&local_msg_type).unwrap();
         let field_defs = state.local_msg_definitions.get(&local_msg_type).unwrap();
+
+        // Read data for each message definition.
         let mut fields = Vec::new();
         let mut message_index: u16 = 0;
         let mut bytes_read = 0;
-
-        // Read data for each message definition.
         for def in field_defs.iter() {
 
             let mut field = FitFieldValue::new();
@@ -1421,7 +1433,12 @@ impl FitRecord {
 
             // Read the number of bytes prescribed by the field definition.
             let data = read_n(reader, def.size as u64)?;
-            bytes_read = bytes_read + def.size as u64;
+            let num_bytes_read = data.len();
+            if num_bytes_read != def.size as usize {
+                let e = Error::new(std::io::ErrorKind::InvalidData, "Failed to read the required number of bytes.");
+                return Err(e);
+            }
+            bytes_read = bytes_read + num_bytes_read as u64;
 
             // Is this a special field, like a timestamp?
             if def.field_def == FIELD_MSG_INDEX {
