@@ -852,7 +852,7 @@ impl FitSessionMsg {
                 17 => { msg.max_heart_rate = Some(field.get_u8()); },
                 0 => { msg.event = Some(field.get_u8()); },
                 186 => { msg.avg_grit = Some(field.get_f32()); },
-                _ => {  } // Don't want to panic because there's a lot of undefined fields for this message type.
+                _ => { /* panic!("Session field not implemented {:#x}", field.field_def); */ }
             }
         }
         msg
@@ -914,7 +914,7 @@ impl FitDeviceInfoMsg {
                 6 => { msg.hardware_version = Some(field.get_u8()); },
                 11 => { msg.battery_status = Some(field.get_u8()); },
                 2 => { msg.manufacturer = Some(field.get_u16()); },
-                _ => { panic!("Device Info field not implemented {:#x}", field.field_def); }
+                _ => { /* panic!("Device Info field not implemented {:#x}", field.field_def); */ }
             }
         }
         msg
@@ -1106,7 +1106,8 @@ impl FitRecordMsg {
                 95 => { msg.time_to_surface = Some(field.get_u32()); },
                 87 => { }, // Can't find a definition for these.
                 88 => { },
-                _ => { panic!("Record field not implemented {:#x}", field.field_def); }
+                108 => { },
+                _ => { /* panic!("Record field not implemented {:#x}", field.field_def); */ }
             }
         }
         msg
