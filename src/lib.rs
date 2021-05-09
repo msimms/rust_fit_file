@@ -42,27 +42,61 @@ mod tests {
             let msg = crate::fit_file::FitRecordMsg::new(fields);
             let mut latitude = 0.0;
             let mut longitude = 0.0;
+            let mut altitude = 0.0;
+            let mut valid_location = true;
 
             match msg.position_lat {
                 Some(res) => {
-                    latitude = crate::fit_file::semicircles_to_degrees(res);
+
+                    // Make sure we have a valid reading.
+                    if res != 0x7FFFFFFF {
+                        latitude = crate::fit_file::semicircles_to_degrees(res);
+                    }
+                    else {
+                        valid_location = false;
+                    }
                 }
                 None => {
+                    valid_location = false;
                 }
             }
             match msg.position_long {
                 Some(res) => {
-                    longitude = crate::fit_file::semicircles_to_degrees(res);
+
+                    // Make sure we have a valid reading.
+                    if res != 0x7FFFFFFF {
+                        longitude = crate::fit_file::semicircles_to_degrees(res);
+                    }
+                    else {
+                        valid_location = false;
+                    }
+                }
+                None => {
+                    valid_location = false;
+                }
+            }
+            match msg.altitude {
+                Some(res) => {
+
+                    // Make sure we have a valid reading.
+                    if res != 0xFFFF {
+                        altitude = (res as f64 / 5.0) - 500.0;
+                    }
                 }
                 None => {
                 }
             }
 
-            println!("[Record Message] Timestamp: {} Latitude: {} Longitude: {}", timestamp, latitude, longitude);
-
             // Increment the number of records processed.
             let data: &mut Context = unsafe { &mut *(context as *mut Context) };
             data.num_records_processed = data.num_records_processed + 1;
+
+            if (valid_location) {
+                println!("[Record Message] Timestamp: {} Latitude: {} Longitude: {} Altitude: {}", timestamp, latitude, longitude, altitude);
+            }
+            else {
+                println!("Invalid location data");
+            }
         }
         else {
             let global_message_names = crate::fit_file::init_global_msg_name_map();
