@@ -43,6 +43,7 @@ mod tests {
             let mut latitude = 0.0;
             let mut longitude = 0.0;
             let mut altitude = 0.0;
+            let mut power = 0;
             let mut valid_location = true;
 
             match msg.position_lat {
@@ -86,10 +87,20 @@ mod tests {
                 None => {
                 }
             }
+            match msg.power {
+                Some(res) => {
+                    if res != 0xFFFF {
+                        power = res;
+                    }
+                }
+                None => {
+                }
+            }
 
             // Increment the number of records processed.
             let data: &mut Context = unsafe { &mut *(context as *mut Context) };
             data.num_records_processed = data.num_records_processed + 1;
+            data.accumulated_power = data.accumulated_power + power as u64;
 
             if valid_location {
                 println!("[Record Message] Timestamp: {} Latitude: {} Longitude: {} Altitude: {}", timestamp, latitude, longitude, altitude);
@@ -132,11 +143,12 @@ mod tests {
     /// Context structure. An instance of this will be passed to the parser and ultimately to the callback function so we can use it for whatever.
     struct Context {
         num_records_processed: u16,
+        accumulated_power: u64
     }
 
     impl Context {
         pub fn new() -> Self {
-            let context = Context{ num_records_processed: 0 };
+            let context = Context{ num_records_processed: 0, accumulated_power: 0 };
             context
         }
     }
@@ -196,6 +208,28 @@ mod tests {
                 println!("");
                 println!("Num records processed: {}", context.num_records_processed);
                 assert!(context.num_records_processed == 179);
+            }
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn file4_run_with_power() {
+        let file = std::fs::File::open("tests/20210507_run_coros_pace_2.fit").unwrap();
+        let mut reader = std::io::BufReader::new(file);
+        let mut context = Context::new();
+        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
+        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
+
+        match fit {
+            Ok(fit) => {
+                print!("FIT File Header: ");
+                fit.header.print();
+                println!("");
+                println!("Num records processed: {}", context.num_records_processed);
+                println!("Accumulated power: {}", context.accumulated_power);
+                assert!(context.num_records_processed == 2364);
+                assert!(context.accumulated_power == 634203);
             }
             _ => (),
         }
