@@ -91,7 +91,7 @@ mod tests {
             let data: &mut Context = unsafe { &mut *(context as *mut Context) };
             data.num_records_processed = data.num_records_processed + 1;
 
-            if (valid_location) {
+            if valid_location {
                 println!("[Record Message] Timestamp: {} Latitude: {} Longitude: {} Altitude: {}", timestamp, latitude, longitude, altitude);
             }
             else {
