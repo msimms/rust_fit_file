@@ -1602,7 +1602,10 @@ impl Fit {
         if self.header.validate() {
 
             let mut error = false;
-            let bytes_to_read = self.header.header_len as u64 + self.header.data_size() as u64;
+
+            // Bytes to read is specified in the header as being the number of bytes after the header.
+            // We also need to subtract the two bytes for the CRC.
+            let bytes_to_read = self.header.header_len as u64 + self.header.data_size() as u64 - 2;
 
             // Read each record.
             while !(reader.buffer().is_empty() || error || state.bytes_read >= bytes_to_read) {
