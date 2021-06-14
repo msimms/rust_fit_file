@@ -1608,7 +1608,7 @@ impl Fit {
             let bytes_to_read = self.header.header_len as u64 + self.header.data_size() as u64 - 2;
 
             // Read each record.
-            while !(reader.buffer().is_empty() || error || state.bytes_read >= bytes_to_read) {
+            while !error && state.bytes_read < bytes_to_read {
 
                 let mut record = FitRecord::new();
                 let result = record.read(reader, &mut state, callback, context);
@@ -1616,8 +1616,8 @@ impl Fit {
                 match result {
                     Ok(_result) => {
                     }
-                    Err(_e) => {
-                        //println!("Error: {} Bytes Read: {}", e, state.bytes_read);
+                    Err(e) => {
+                        println!("Error: {} Bytes Read: {}", e, state.bytes_read);
                         error = true;
                     }
                 }

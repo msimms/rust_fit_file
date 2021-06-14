@@ -235,6 +235,26 @@ mod tests {
         }
     }
 
+    #[test]
+    fn file5_track_run() {
+        let file = std::fs::File::open("tests/20210610_track_garmin_fenix_6.fit").unwrap();
+        let mut reader = std::io::BufReader::new(file);
+        let mut context = Context::new();
+        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
+        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
+
+        match fit {
+            Ok(fit) => {
+                print!("FIT File Header: ");
+                fit.header.print();
+                println!("");
+                println!("Num records processed: {}", context.num_records_processed);
+                assert!(context.num_records_processed == 1672);
+            }
+            _ => (),
+        }
+    }
+
     fn convert_to_camel_case(name: &String) -> String {
         let mut new_name = String::new();
         let mut need_upper_case = true;
