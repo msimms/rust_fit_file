@@ -1114,6 +1114,60 @@ impl FitRecordMsg {
     }
 }
 
+pub struct FitEventMsg {
+    pub event_group: Option<u8>,
+    pub rear_gear: Option<u8>,
+    pub data16: Option<u16>,
+    pub event: Option<u8>,
+    pub rear_gear_num: Option<u8>,
+    pub score: Option<u16>,
+    pub data: Option<u32>,
+    pub radar_threat_level_max: Option<u8>,
+    pub front_gear: Option<u8>,
+    pub device_index: Option<u8>,
+    pub opponent_score: Option<u16>,
+    pub timestamp: Option<u32>,
+    pub event_type: Option<u8>,
+    pub radar_threat_count: Option<u8>,
+    pub front_gear_num: Option<u8>,
+}
+
+impl FitEventMsg {
+
+    /// Constructor: Takes the fields that were read by the file parser and puts them into a structure.
+    pub fn new(fields: Vec<FitFieldValue>) -> Self {
+        let mut msg = FitEventMsg { event_group: None,
+            rear_gear: None, data16: None, event: None,
+            rear_gear_num: None, score: None, data: None,
+            radar_threat_level_max: None, front_gear: None, device_index: None,
+            opponent_score: None, timestamp: None, event_type: None,
+            radar_threat_count: None, front_gear_num: None,
+        };
+
+        for field in fields {
+            match field.field_def {
+                4 => { msg.event_group = Some(field.get_u8()); },
+                12 => { msg.rear_gear = Some(field.get_u8()); },
+                2 => { msg.data16 = Some(field.get_u16()); },
+                0 => { msg.event = Some(field.get_u8()); },
+                11 => { msg.rear_gear_num = Some(field.get_u8()); },
+                7 => { msg.score = Some(field.get_u16()); },
+                3 => { msg.data = Some(field.get_u32()); },
+                21 => { msg.radar_threat_level_max = Some(field.get_u8()); },
+                10 => { msg.front_gear = Some(field.get_u8()); },
+                13 => { msg.device_index = Some(field.get_u8()); },
+                8 => { msg.opponent_score = Some(field.get_u16()); },
+                253 => { msg.timestamp = Some(field.get_u32()); },
+                1 => { msg.event_type = Some(field.get_u8()); },
+                22 => { msg.radar_threat_count = Some(field.get_u8()); },
+                9 => { msg.front_gear_num = Some(field.get_u8()); },
+                _ => { /* panic!("Record field not implemented {:#x}", field.field_def); */ }
+            }
+        }
+        msg
+    }
+}
+
 pub enum FieldType {
     FieldTypeNotSet, // Value not set
     FieldTypeUInt, // Value is an unsigned integer
