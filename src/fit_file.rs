@@ -1526,7 +1526,7 @@ impl FitRecord {
                     0x8E => { field.num_sint = byte_array_to_sint64(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
                     0x8F => { field.num_uint = byte_array_to_uint64(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
                     0x90 => { field.num_uint = byte_array_to_uint64(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                    _ => { panic!("Base Type not implemented {:#x}", def.base_type); }
+                    _ => { /* panic!("Base Type not implemented {:#x}", def.base_type); */ }
                 }
                 fields.push(field);
             }
