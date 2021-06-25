@@ -430,7 +430,7 @@ fn byte_array_to_num(bytes: Vec<u8>, num_bytes: usize, is_big_endian: bool) -> u
     let mut num: u64 = 0;
 
     if bytes.len() < num_bytes {
-        panic!("Unexpected length, got {} when expecting {}", bytes.len(), num_bytes);
+        panic!("Unexpected length; got {} when expecting {}", bytes.len(), num_bytes);
     }
 
     if is_big_endian {
@@ -532,10 +532,12 @@ impl FitFileCreatorMsg {
         };
 
         for field in fields {
-            match field.field_def {
-                1 => { msg.hardware_version = Some(field.get_u8()); },
-                0 => { msg.software_version = Some(field.get_u16()); },
-                _ => { panic!("FileCreator field not implemented {:#x}", field.field_def); }
+            if !field.is_dev_field {
+                match field.field_def {
+                    1 => { msg.hardware_version = Some(field.get_u8()); },
+                    0 => { msg.software_version = Some(field.get_u16()); },
+                    _ => { panic!("FileCreator field not implemented {:#x}", field.field_def); }
+                }
             }
         }
         msg
@@ -724,135 +726,137 @@ impl FitSessionMsg {
         };
 
         for field in fields {
-            match field.field_def {
-                10 => { msg.total_cycles = Some(field.get_u32()); },
-                33 => { msg.num_lengths = Some(field.get_u16()); },
-                9 => { msg.total_distance = Some(field.get_u32()); },
-                91 => { msg.avg_stance_time = Some(field.get_u16()); },
-                104 => { msg.avg_right_pedal_smoothness = Some(field.get_u8()); },
-                59 => { msg.total_moving_time = Some(field.get_u32()); },
-                132 => { msg.avg_vertical_ratio = Some(field.get_u16()); },
-                70 => { msg.best_lap_index = Some(field.get_u16()); },
-                253 => { msg.timestamp = Some(field.get_u32()); },
-                49 => { msg.avg_altitude = Some(field.get_u16()); },
-                43 => { msg.swim_stroke = Some(field.get_u8()); },
-                200 => { msg.total_fractional_descent = Some(field.get_u8()); },
-                63 => { msg.max_neg_vertical_speed = Some(field.get_i16()); },
-                93 => { msg.max_fractional_cadence = Some(field.get_u8()); },
-                36 => { msg.intensity_factor = Some(field.get_u16()); },
-                87 => { msg.max_ball_speed = Some(field.get_u16()); },
-                129 => { msg.avg_lev_motor_power = Some(field.get_u16()); },
-                183 => { msg.jump_count = Some(field.get_u16()); },
-                21 => { msg.max_power = Some(field.get_u16()); },
-                47 => { msg.num_active_lengths = Some(field.get_u16()); },
-                56 => { msg.max_neg_grade = Some(field.get_i16()); },
-                35 => { msg.training_stress_score = Some(field.get_u16()); },
-                128 => { msg.enhanced_max_altitude = Some(field.get_u32()); },
-                123 => { msg.max_cadence_position = Some(field.get_u8()); },
-                11 => { msg.total_calories = Some(field.get_u16()); },
-                53 => { msg.avg_pos_grade = Some(field.get_i16()); },
-                67 => { msg.time_in_cadence_zone = Some(field.get_u32()); },
-                86 => { msg.zone_count = Some(field.get_u16()); },
-                125 => { msg.enhanced_max_speed = Some(field.get_u32()); },
-                18 => { msg.avg_cadence = Some(field.get_u8()); },
-                199 => { msg.total_fractional_ascent = Some(field.get_u8()); },
-                7 => { msg.total_elapsed_time = Some(field.get_u32()); },
-                32 => { msg.swc_long = Some(field.get_i32()); },
-                62 => { msg.max_pos_vertical_speed = Some(field.get_i16()); },
-                133 => { msg.avg_stance_time_balance = Some(field.get_u16()); },
-                100 => { msg.max_saturated_hemoglobin_percent = Some(field.get_u16()); },
-                1 => { msg.event_type = Some(field.get_u8()); },
-                25 => { msg.first_lap_index = Some(field.get_u16()); },
-                124 => { msg.enhanced_avg_speed = Some(field.get_u32()); },
-                187 => { msg.avg_flow = Some(field.get_f32()); },
-                65 => { msg.time_in_hr_zone = Some(field.get_u32()); },
-                46 => { msg.pool_length_unit = Some(field.get_u8()); },
-                19 => { msg.max_cadence = Some(field.get_u8()); },
-                27 => { msg.event_group = Some(field.get_u8()); },
-                122 => { msg.avg_cadence_position = Some(field.get_u8()); },
-                4 => { msg.start_position_long = Some(field.get_i32()); },
-                8 => { msg.total_timer_time = Some(field.get_u32()); },
-                28 => { msg.trigger = Some(field.get_u8()); },
-                15 => { msg.max_speed = Some(field.get_u16()); },
-                29 => { msg.nec_lat = Some(field.get_i32()); },
-                48 => { msg.total_work = Some(field.get_u32()); },
-                96 => { msg.min_total_hemoglobin_conc = Some(field.get_u16()); },
-                99 => { msg.min_saturated_hemoglobin_percent = Some(field.get_u16()); },
-                130 => { msg.max_lev_motor_power = Some(field.get_u16()); },
-                31 => { msg.swc_lat = Some(field.get_i32()); },
-                116 => { msg.avg_left_power_phase = Some(field.get_u8()); },
-                88 => { msg.avg_ball_speed = Some(field.get_u16()); },
-                85 => { msg.stroke_count = Some(field.get_u16()); },
-                94 => { msg.total_fractional_cycles = Some(field.get_u8()); },
-                126 => { msg.enhanced_avg_altitude = Some(field.get_u32()); },
-                24 => { msg.total_training_effect = Some(field.get_u8()); },
-                54 => { msg.avg_neg_grade = Some(field.get_i16()); },
-                71 => { msg.min_altitude = Some(field.get_u16()); },
-                55 => { msg.max_pos_grade = Some(field.get_i16()); },
-                119 => { msg.avg_right_power_phase_peak = Some(field.get_u8()); },
-                102 => { msg.avg_right_torque_effectiveness = Some(field.get_u8()); },
-                61 => { msg.avg_neg_vertical_speed = Some(field.get_i16()); },
-                97 => { msg.max_total_hemoglobin_conc = Some(field.get_u16()); },
-                113 => { msg.stand_count = Some(field.get_u16()); },
-                64 => { msg.min_heart_rate = Some(field.get_u8()); },
-                6 => { msg.sub_sport = Some(field.get_u8()); },
-                30 => { msg.nec_long = Some(field.get_i32()); },
-                95 => { msg.avg_total_hemoglobin_conc = Some(field.get_u16()); },
-                120 => { msg.avg_power_position = Some(field.get_u16()); },
-                111 => { msg.sport_index = Some(field.get_u8()); },
-                92 => { msg.avg_fractional_cadence = Some(field.get_u8()); },
-                34 => { msg.normalized_power = Some(field.get_u16()); },
-                101 => { msg.avg_left_torque_effectiveness = Some(field.get_u8()); },
-                103 => { msg.avg_left_pedal_smoothness = Some(field.get_u8()); },
-                23 => { msg.total_descent = Some(field.get_u16()); },
-                181 => { msg.total_grit = Some(field.get_f32()); },
-                182 => { msg.total_flow = Some(field.get_f32()); },
-                37 => { msg.left_right_balance = Some(field.get_u16()); },
-                3 => { msg.start_position_lat = Some(field.get_i32()); },
-                84 => { msg.opponent_name = Some(field.string); },
-                58 => { msg.max_temperature = Some(field.get_i8()); },
-                131 => { msg.lev_battery_consumption = Some(field.get_u8()); },
-                134 => { msg.avg_step_length = Some(field.get_u16()); },
-                26 => { msg.num_laps = Some(field.get_u16()); },
-                52 => { msg.avg_grade = Some(field.get_i16()); },
-                41 => { msg.avg_stroke_count = Some(field.get_u32()); },
-                117 => { msg.avg_left_power_phase_peak = Some(field.get_u8()); },
-                121 => { msg.max_power_position = Some(field.get_u16()); },
-                13 => { msg.total_fat_calories = Some(field.get_u16()); },
-                44 => { msg.pool_length = Some(field.get_u16()); },
-                22 => { msg.total_ascent = Some(field.get_u16()); },
-                51 => { msg.gps_accuracy = Some(field.get_u8()); },
-                69 => { msg.avg_lap_time = Some(field.get_u32()); },
-                50 => { msg.max_altitude = Some(field.get_u16()); },
-                112 => { msg.time_standing = Some(field.get_u32()); },
-                114 => { msg.avg_left_pco = Some(field.get_i8()); },
-                68 => { msg.time_in_power_zone = Some(field.get_u32()); },
-                66 => { msg.time_in_speed_zone = Some(field.get_u32()); },
-                20 => { msg.avg_power = Some(field.get_u16()); },
-                83 => { msg.opponent_score = Some(field.get_u16()); },
-                105 => { msg.avg_combined_pedal_smoothness = Some(field.get_u8()); },
-                16 => { msg.avg_heart_rate = Some(field.get_u8()); },
-                127 => { msg.enhanced_min_altitude = Some(field.get_u32()); },
-                137 => { msg.total_anaerobic_training_effect = Some(field.get_u8()); },
-                45 => { msg.threshold_power = Some(field.get_u16()); },
-                2 => { msg.start_time = Some(field.get_u32()); },
-                89 => { msg.avg_vertical_oscillation = Some(field.get_u16()); },
-                98 => { msg.avg_saturated_hemoglobin_percent = Some(field.get_u16()); },
-                115 => { msg.avg_right_pco = Some(field.get_i8()); },
-                5 => { msg.sport = Some(field.get_u8()); },
-                57 => { msg.avg_temperature = Some(field.get_i8()); },
-                60 => { msg.avg_pos_vertical_speed = Some(field.get_i16()); },
-                254 => { msg.message_index = Some(field.get_u16()); },
-                82 => { msg.player_score = Some(field.get_u16()); },
-                90 => { msg.avg_stance_time_percent = Some(field.get_u16()); },
-                42 => { msg.avg_stroke_distance = Some(field.get_u16()); },
-                118 => { msg.avg_right_power_phase = Some(field.get_u8()); },
-                14 => { msg.avg_speed = Some(field.get_u16()); },
-                139 => { msg.avg_vam = Some(field.get_u16()); },
-                17 => { msg.max_heart_rate = Some(field.get_u8()); },
-                0 => { msg.event = Some(field.get_u8()); },
-                186 => { msg.avg_grit = Some(field.get_f32()); },
-                _ => { /* panic!("Session field not implemented {:#x}", field.field_def); */ }
+            if !field.is_dev_field {
+                match field.field_def {
+                    10 => { msg.total_cycles = Some(field.get_u32()); },
+                    33 => { msg.num_lengths = Some(field.get_u16()); },
+                    9 => { msg.total_distance = Some(field.get_u32()); },
+                    91 => { msg.avg_stance_time = Some(field.get_u16()); },
+                    104 => { msg.avg_right_pedal_smoothness = Some(field.get_u8()); },
+                    59 => { msg.total_moving_time = Some(field.get_u32()); },
+                    132 => { msg.avg_vertical_ratio = Some(field.get_u16()); },
+                    70 => { msg.best_lap_index = Some(field.get_u16()); },
+                    253 => { msg.timestamp = Some(field.get_u32()); },
+                    49 => { msg.avg_altitude = Some(field.get_u16()); },
+                    43 => { msg.swim_stroke = Some(field.get_u8()); },
+                    200 => { msg.total_fractional_descent = Some(field.get_u8()); },
+                    63 => { msg.max_neg_vertical_speed = Some(field.get_i16()); },
+                    93 => { msg.max_fractional_cadence = Some(field.get_u8()); },
+                    36 => { msg.intensity_factor = Some(field.get_u16()); },
+                    87 => { msg.max_ball_speed = Some(field.get_u16()); },
+                    129 => { msg.avg_lev_motor_power = Some(field.get_u16()); },
+                    183 => { msg.jump_count = Some(field.get_u16()); },
+                    21 => { msg.max_power = Some(field.get_u16()); },
+                    47 => { msg.num_active_lengths = Some(field.get_u16()); },
+                    56 => { msg.max_neg_grade = Some(field.get_i16()); },
+                    35 => { msg.training_stress_score = Some(field.get_u16()); },
+                    128 => { msg.enhanced_max_altitude = Some(field.get_u32()); },
+                    123 => { msg.max_cadence_position = Some(field.get_u8()); },
+                    11 => { msg.total_calories = Some(field.get_u16()); },
+                    53 => { msg.avg_pos_grade = Some(field.get_i16()); },
+                    67 => { msg.time_in_cadence_zone = Some(field.get_u32()); },
+                    86 => { msg.zone_count = Some(field.get_u16()); },
+                    125 => { msg.enhanced_max_speed = Some(field.get_u32()); },
+                    18 => { msg.avg_cadence = Some(field.get_u8()); },
+                    199 => { msg.total_fractional_ascent = Some(field.get_u8()); },
+                    7 => { msg.total_elapsed_time = Some(field.get_u32()); },
+                    32 => { msg.swc_long = Some(field.get_i32()); },
+                    62 => { msg.max_pos_vertical_speed = Some(field.get_i16()); },
+                    133 => { msg.avg_stance_time_balance = Some(field.get_u16()); },
+                    100 => { msg.max_saturated_hemoglobin_percent = Some(field.get_u16()); },
+                    1 => { msg.event_type = Some(field.get_u8()); },
+                    25 => { msg.first_lap_index = Some(field.get_u16()); },
+                    124 => { msg.enhanced_avg_speed = Some(field.get_u32()); },
+                    187 => { msg.avg_flow = Some(field.get_f32()); },
+                    65 => { msg.time_in_hr_zone = Some(field.get_u32()); },
+                    46 => { msg.pool_length_unit = Some(field.get_u8()); },
+                    19 => { msg.max_cadence = Some(field.get_u8()); },
+                    27 => { msg.event_group = Some(field.get_u8()); },
+                    122 => { msg.avg_cadence_position = Some(field.get_u8()); },
+                    4 => { msg.start_position_long = Some(field.get_i32()); },
+                    8 => { msg.total_timer_time = Some(field.get_u32()); },
+                    28 => { msg.trigger = Some(field.get_u8()); },
+                    15 => { msg.max_speed = Some(field.get_u16()); },
+                    29 => { msg.nec_lat = Some(field.get_i32()); },
+                    48 => { msg.total_work = Some(field.get_u32()); },
+                    96 => { msg.min_total_hemoglobin_conc = Some(field.get_u16()); },
+                    99 => { msg.min_saturated_hemoglobin_percent = Some(field.get_u16()); },
+                    130 => { msg.max_lev_motor_power = Some(field.get_u16()); },
+                    31 => { msg.swc_lat = Some(field.get_i32()); },
+                    116 => { msg.avg_left_power_phase = Some(field.get_u8()); },
+                    88 => { msg.avg_ball_speed = Some(field.get_u16()); },
+                    85 => { msg.stroke_count = Some(field.get_u16()); },
+                    94 => { msg.total_fractional_cycles = Some(field.get_u8()); },
+                    126 => { msg.enhanced_avg_altitude = Some(field.get_u32()); },
+                    24 => { msg.total_training_effect = Some(field.get_u8()); },
+                    54 => { msg.avg_neg_grade = Some(field.get_i16()); },
+                    71 => { msg.min_altitude = Some(field.get_u16()); },
+                    55 => { msg.max_pos_grade = Some(field.get_i16()); },
+                    119 => { msg.avg_right_power_phase_peak = Some(field.get_u8()); },
+                    102 => { msg.avg_right_torque_effectiveness = Some(field.get_u8()); },
+                    61 => { msg.avg_neg_vertical_speed = Some(field.get_i16()); },
+                    97 => { msg.max_total_hemoglobin_conc = Some(field.get_u16()); },
+                    113 => { msg.stand_count = Some(field.get_u16()); },
+                    64 => { msg.min_heart_rate = Some(field.get_u8()); },
+                    6 => { msg.sub_sport = Some(field.get_u8()); },
+                    30 => { msg.nec_long = Some(field.get_i32()); },
+                    95 => { msg.avg_total_hemoglobin_conc = Some(field.get_u16()); },
+                    120 => { msg.avg_power_position = Some(field.get_u16()); },
+                    111 => { msg.sport_index = Some(field.get_u8()); },
+                    92 => { msg.avg_fractional_cadence = Some(field.get_u8()); },
+                    34 => { msg.normalized_power = Some(field.get_u16()); },
+                    101 => { msg.avg_left_torque_effectiveness = Some(field.get_u8()); },
+                    103 => { msg.avg_left_pedal_smoothness = Some(field.get_u8()); },
+                    23 => { msg.total_descent = Some(field.get_u16()); },
+                    181 => { msg.total_grit = Some(field.get_f32()); },
+                    182 => { msg.total_flow = Some(field.get_f32()); },
+                    37 => { msg.left_right_balance = Some(field.get_u16()); },
+                    3 => { msg.start_position_lat = Some(field.get_i32()); },
+                    84 => { msg.opponent_name = Some(field.value_string); },
+                    58 => { msg.max_temperature = Some(field.get_i8()); },
+                    131 => { msg.lev_battery_consumption = Some(field.get_u8()); },
+                    134 => { msg.avg_step_length = Some(field.get_u16()); },
+                    26 => { msg.num_laps = Some(field.get_u16()); },
+                    52 => { msg.avg_grade = Some(field.get_i16()); },
+                    41 => { msg.avg_stroke_count = Some(field.get_u32()); },
+                    117 => { msg.avg_left_power_phase_peak = Some(field.get_u8()); },
+                    121 => { msg.max_power_position = Some(field.get_u16()); },
+                    13 => { msg.total_fat_calories = Some(field.get_u16()); },
+                    44 => { msg.pool_length = Some(field.get_u16()); },
+                    22 => { msg.total_ascent = Some(field.get_u16()); },
+                    51 => { msg.gps_accuracy = Some(field.get_u8()); },
+                    69 => { msg.avg_lap_time = Some(field.get_u32()); },
+                    50 => { msg.max_altitude = Some(field.get_u16()); },
+                    112 => { msg.time_standing = Some(field.get_u32()); },
+                    114 => { msg.avg_left_pco = Some(field.get_i8()); },
+                    68 => { msg.time_in_power_zone = Some(field.get_u32()); },
+                    66 => { msg.time_in_speed_zone = Some(field.get_u32()); },
+                    20 => { msg.avg_power = Some(field.get_u16()); },
+                    83 => { msg.opponent_score = Some(field.get_u16()); },
+                    105 => { msg.avg_combined_pedal_smoothness = Some(field.get_u8()); },
+                    16 => { msg.avg_heart_rate = Some(field.get_u8()); },
+                    127 => { msg.enhanced_min_altitude = Some(field.get_u32()); },
+                    137 => { msg.total_anaerobic_training_effect = Some(field.get_u8()); },
+                    45 => { msg.threshold_power = Some(field.get_u16()); },
+                    2 => { msg.start_time = Some(field.get_u32()); },
+                    89 => { msg.avg_vertical_oscillation = Some(field.get_u16()); },
+                    98 => { msg.avg_saturated_hemoglobin_percent = Some(field.get_u16()); },
+                    115 => { msg.avg_right_pco = Some(field.get_i8()); },
+                    5 => { msg.sport = Some(field.get_u8()); },
+                    57 => { msg.avg_temperature = Some(field.get_i8()); },
+                    60 => { msg.avg_pos_vertical_speed = Some(field.get_i16()); },
+                    254 => { msg.message_index = Some(field.get_u16()); },
+                    82 => { msg.player_score = Some(field.get_u16()); },
+                    90 => { msg.avg_stance_time_percent = Some(field.get_u16()); },
+                    42 => { msg.avg_stroke_distance = Some(field.get_u16()); },
+                    118 => { msg.avg_right_power_phase = Some(field.get_u8()); },
+                    14 => { msg.avg_speed = Some(field.get_u16()); },
+                    139 => { msg.avg_vam = Some(field.get_u16()); },
+                    17 => { msg.max_heart_rate = Some(field.get_u8()); },
+                    0 => { msg.event = Some(field.get_u8()); },
+                    186 => { msg.avg_grit = Some(field.get_f32()); },
+                    _ => { /* panic!("Session field not implemented {:#x}", field.field_def); */ }
+                }
             }
         }
         msg
@@ -895,26 +899,28 @@ impl FitDeviceInfoMsg {
         };
 
         for field in fields {
-            match field.field_def {
-                10 => { msg.battery_voltage = Some(field.get_u16()); },
-                7 => { msg.cum_operating_time = Some(field.get_u32()); },
-                3 => { msg.serial_number = Some(field.get_u32()); },
-                4 => { msg.product = Some(field.get_u16()); },
-                253 => { msg.timestamp = Some(field.get_u32()); },
-                18 => { msg.sensor_position = Some(field.get_u8()); },
-                25 => { msg.source_type = Some(field.get_u8()); },
-                5 => { msg.software_version = Some(field.get_u16()); },
-                20 => { msg.ant_transmission_type = Some(field.get_u8()); },
-                21 => { msg.ant_device_number = Some(field.get_u16()); },
-                19 => { msg.descriptor = Some(field.string); },
-                1 => { msg.device_type = Some(field.get_u8()); },
-                22 => { msg.ant_network = Some(field.get_u8()); },
-                27 => { msg.product_name = Some(field.string); },
-                0 => { msg.device_index = Some(field.get_u8()); },
-                6 => { msg.hardware_version = Some(field.get_u8()); },
-                11 => { msg.battery_status = Some(field.get_u8()); },
-                2 => { msg.manufacturer = Some(field.get_u16()); },
-                _ => { /* panic!("Device Info field not implemented {:#x}", field.field_def); */ }
+            if !field.is_dev_field {
+                match field.field_def {
+                    10 => { msg.battery_voltage = Some(field.get_u16()); },
+                    7 => { msg.cum_operating_time = Some(field.get_u32()); },
+                    3 => { msg.serial_number = Some(field.get_u32()); },
+                    4 => { msg.product = Some(field.get_u16()); },
+                    253 => { msg.timestamp = Some(field.get_u32()); },
+                    18 => { msg.sensor_position = Some(field.get_u8()); },
+                    25 => { msg.source_type = Some(field.get_u8()); },
+                    5 => { msg.software_version = Some(field.get_u16()); },
+                    20 => { msg.ant_transmission_type = Some(field.get_u8()); },
+                    21 => { msg.ant_device_number = Some(field.get_u16()); },
+                    19 => { msg.descriptor = Some(field.value_string); },
+                    1 => { msg.device_type = Some(field.get_u8()); },
+                    22 => { msg.ant_network = Some(field.get_u8()); },
+                    27 => { msg.product_name = Some(field.value_string); },
+                    0 => { msg.device_index = Some(field.get_u8()); },
+                    6 => { msg.hardware_version = Some(field.get_u8()); },
+                    11 => { msg.battery_status = Some(field.get_u8()); },
+                    2 => { msg.manufacturer = Some(field.get_u16()); },
+                    _ => { /* panic!("Device Info field not implemented {:#x}", field.field_def); */ }
+                }
             }
         }
         msg
@@ -1030,84 +1036,86 @@ impl FitRecordMsg {
         };
 
         for field in fields {
-            match field.field_def {
-                85 => { msg.step_length = Some(field.get_u16()); },
-                10 => { msg.resistance = Some(field.get_u8()); },
-                6 => { msg.speed = Some(field.get_u16()); },
-                29 => { msg.accumulated_power = Some(field.get_u32()); },
-                93 => { msg.next_stop_depth = Some(field.get_u32()); },
-                49 => { msg.stroke_type = Some(field.get_u8()); },
-                3 => { msg.heart_rate = Some(field.get_u8()); },
-                18 => { msg.cycles = Some(field.get_u8()); },
-                54 => { msg.total_hemoglobin_conc = Some(field.get_u16()); },
-                11 => { msg.time_from_course = Some(field.get_i32()); },
-                57 => { msg.saturated_hemoglobin_percent = Some(field.get_u16()); },
-                52 => { msg.cadence256 = Some(field.get_u16()); },
-                96 => { msg.ndl_time = Some(field.get_u32()); },
-                94 => { msg.next_stop_time = Some(field.get_u32()); },
-                48 => { msg.time128 = Some(field.get_u8()); },
-                30 => { msg.left_right_balance = Some(field.get_u8()); },
-                13 => { msg.temperature = Some(field.get_i8()); },
-                1 => { msg.position_long = Some(field.get_i32()); },
-                82 => { msg.motor_power = Some(field.get_u16()); },
-                83 => { msg.vertical_ratio = Some(field.get_u16()); },
-                114 => { msg.grit = Some(field.get_f32()); },
-                28 => { msg.compressed_accumulated_power = Some(field.get_u16()); },
-                0 => { msg.position_lat = Some(field.get_i32()); },
-                119 => { msg.ebike_assist_mode = Some(field.get_u8()); },
-                98 => { msg.n2_load = Some(field.get_u16()); },
-                9 => { msg.grade = Some(field.get_i16()); },
-                69 => { msg.left_power_phase = Some(field.get_u8()); },
-                7 => { msg.power = Some(field.get_u16()); },
-                253 => { msg.timestamp = Some(field.get_u32()); },
-                39 => { msg.vertical_oscillation = Some(field.get_u16()); },
-                53 => { msg.fractional_cadence = Some(field.get_u8()); },
-                58 => { msg.saturated_hemoglobin_percent_min = Some(field.get_u16()); },
-                12 => { msg.cycle_length = Some(field.get_u8()); },
-                46 => { msg.right_pedal_smoothness = Some(field.get_u8()); },
-                56 => { msg.total_hemoglobin_conc_max = Some(field.get_u16()); },
-                40 => { msg.stance_time_percent = Some(field.get_u16()); },
-                78 => { msg.enhanced_altitude = Some(field.get_u32()); },
-                84 => { msg.stance_time_balance = Some(field.get_u16()); },
-                17 => { msg.speed_1s = Some(field.get_u8()); },
-                81 => { msg.battery_soc = Some(field.get_u8()); },
-                55 => { msg.total_hemoglobin_conc_min = Some(field.get_u16()); },
-                97 => { msg.cns_load = Some(field.get_u8()); },
-                5 => { msg.distance = Some(field.get_u32()); },
-                50 => { msg.zone = Some(field.get_u8()); },
-                51 => { msg.ball_speed = Some(field.get_u16()); },
-                31 => { msg.gps_accuracy = Some(field.get_u8()); },
-                91 => { msg.absolute_pressure = Some(field.get_u32()); },
-                33 => { msg.calories = Some(field.get_u16()); },
-                41 => { msg.stance_time = Some(field.get_u16()); },
-                68 => { msg.right_pco = Some(field.get_i8()); },
-                117 => { msg.ebike_travel_range = Some(field.get_u16()); },
-                43 => { msg.left_torque_effectiveness = Some(field.get_u8()); },
-                42 => { msg.activity_type = Some(field.get_u8()); },
-                92 => { msg.depth = Some(field.get_u32()); },
-                73 => { msg.enhanced_speed = Some(field.get_u32()); },
-                19 => { msg.total_cycles = Some(field.get_u32()); },
-                32 => { msg.vertical_speed = Some(field.get_i16()); },
-                47 => { msg.combined_pedal_smoothness = Some(field.get_u8()); },
-                59 => { msg.saturated_hemoglobin_percent_max = Some(field.get_u16()); },
-                2 => { msg.altitude = Some(field.get_u16()); },
-                67 => { msg.left_pco = Some(field.get_i8()); },
-                70 => { msg.left_power_phase_peak = Some(field.get_u8()); },
-                115 => { msg.flow = Some(field.get_f32()); },
-                62 => { msg.device_index = Some(field.get_u8()); },
-                4 => { msg.cadence = Some(field.get_u8()); },
-                120 => { msg.ebike_assist_level_percent = Some(field.get_u8()); },
-                72 => { msg.right_power_phase_peak = Some(field.get_u8()); },
-                118 => { msg.ebike_battery_level = Some(field.get_u8()); },
-                8 => { msg.compressed_speed_distance = Some(field.get_u8()); },
-                45 => { msg.left_pedal_smoothness = Some(field.get_u8()); },
-                71 => { msg.right_power_phase = Some(field.get_u8()); },
-                44 => { msg.right_torque_effectiveness = Some(field.get_u8()); },
-                95 => { msg.time_to_surface = Some(field.get_u32()); },
-                87 => { }, // Can't find a definition for these.
-                88 => { },
-                108 => { },
-                _ => { /* panic!("Record field not implemented {:#x}", field.field_def); */ }
+            if !field.is_dev_field {
+                match field.field_def {
+                    85 => { msg.step_length = Some(field.get_u16()); },
+                    10 => { msg.resistance = Some(field.get_u8()); },
+                    6 => { msg.speed = Some(field.get_u16()); },
+                    29 => { msg.accumulated_power = Some(field.get_u32()); },
+                    93 => { msg.next_stop_depth = Some(field.get_u32()); },
+                    49 => { msg.stroke_type = Some(field.get_u8()); },
+                    3 => { msg.heart_rate = Some(field.get_u8()); },
+                    18 => { msg.cycles = Some(field.get_u8()); },
+                    54 => { msg.total_hemoglobin_conc = Some(field.get_u16()); },
+                    11 => { msg.time_from_course = Some(field.get_i32()); },
+                    57 => { msg.saturated_hemoglobin_percent = Some(field.get_u16()); },
+                    52 => { msg.cadence256 = Some(field.get_u16()); },
+                    96 => { msg.ndl_time = Some(field.get_u32()); },
+                    94 => { msg.next_stop_time = Some(field.get_u32()); },
+                    48 => { msg.time128 = Some(field.get_u8()); },
+                    30 => { msg.left_right_balance = Some(field.get_u8()); },
+                    13 => { msg.temperature = Some(field.get_i8()); },
+                    1 => { msg.position_long = Some(field.get_i32()); },
+                    82 => { msg.motor_power = Some(field.get_u16()); },
+                    83 => { msg.vertical_ratio = Some(field.get_u16()); },
+                    114 => { msg.grit = Some(field.get_f32()); },
+                    28 => { msg.compressed_accumulated_power = Some(field.get_u16()); },
+                    0 => { msg.position_lat = Some(field.get_i32()); },
+                    119 => { msg.ebike_assist_mode = Some(field.get_u8()); },
+                    98 => { msg.n2_load = Some(field.get_u16()); },
+                    9 => { msg.grade = Some(field.get_i16()); },
+                    69 => { msg.left_power_phase = Some(field.get_u8()); },
+                    7 => { msg.power = Some(field.get_u16()); },
+                    253 => { msg.timestamp = Some(field.get_u32()); },
+                    39 => { msg.vertical_oscillation = Some(field.get_u16()); },
+                    53 => { msg.fractional_cadence = Some(field.get_u8()); },
+                    58 => { msg.saturated_hemoglobin_percent_min = Some(field.get_u16()); },
+                    12 => { msg.cycle_length = Some(field.get_u8()); },
+                    46 => { msg.right_pedal_smoothness = Some(field.get_u8()); },
+                    56 => { msg.total_hemoglobin_conc_max = Some(field.get_u16()); },
+                    40 => { msg.stance_time_percent = Some(field.get_u16()); },
+                    78 => { msg.enhanced_altitude = Some(field.get_u32()); },
+                    84 => { msg.stance_time_balance = Some(field.get_u16()); },
+                    17 => { msg.speed_1s = Some(field.get_u8()); },
+                    81 => { msg.battery_soc = Some(field.get_u8()); },
+                    55 => { msg.total_hemoglobin_conc_min = Some(field.get_u16()); },
+                    97 => { msg.cns_load = Some(field.get_u8()); },
+                    5 => { msg.distance = Some(field.get_u32()); },
+                    50 => { msg.zone = Some(field.get_u8()); },
+                    51 => { msg.ball_speed = Some(field.get_u16()); },
+                    31 => { msg.gps_accuracy = Some(field.get_u8()); },
+                    91 => { msg.absolute_pressure = Some(field.get_u32()); },
+                    33 => { msg.calories = Some(field.get_u16()); },
+                    41 => { msg.stance_time = Some(field.get_u16()); },
+                    68 => { msg.right_pco = Some(field.get_i8()); },
+                    117 => { msg.ebike_travel_range = Some(field.get_u16()); },
+                    43 => { msg.left_torque_effectiveness = Some(field.get_u8()); },
+                    42 => { msg.activity_type = Some(field.get_u8()); },
+                    92 => { msg.depth = Some(field.get_u32()); },
+                    73 => { msg.enhanced_speed = Some(field.get_u32()); },
+                    19 => { msg.total_cycles = Some(field.get_u32()); },
+                    32 => { msg.vertical_speed = Some(field.get_i16()); },
+                    47 => { msg.combined_pedal_smoothness = Some(field.get_u8()); },
+                    59 => { msg.saturated_hemoglobin_percent_max = Some(field.get_u16()); },
+                    2 => { msg.altitude = Some(field.get_u16()); },
+                    67 => { msg.left_pco = Some(field.get_i8()); },
+                    70 => { msg.left_power_phase_peak = Some(field.get_u8()); },
+                    115 => { msg.flow = Some(field.get_f32()); },
+                    62 => { msg.device_index = Some(field.get_u8()); },
+                    4 => { msg.cadence = Some(field.get_u8()); },
+                    120 => { msg.ebike_assist_level_percent = Some(field.get_u8()); },
+                    72 => { msg.right_power_phase_peak = Some(field.get_u8()); },
+                    118 => { msg.ebike_battery_level = Some(field.get_u8()); },
+                    8 => { msg.compressed_speed_distance = Some(field.get_u8()); },
+                    45 => { msg.left_pedal_smoothness = Some(field.get_u8()); },
+                    71 => { msg.right_power_phase = Some(field.get_u8()); },
+                    44 => { msg.right_torque_effectiveness = Some(field.get_u8()); },
+                    95 => { msg.time_to_surface = Some(field.get_u32()); },
+                    87 => { }, // Can't find a definition for these.
+                    88 => { },
+                    108 => { },
+                    _ => { /* panic!("Record field not implemented {:#x}", field.field_def); */ }
+                }
             }
         }
         msg
@@ -1145,23 +1153,25 @@ impl FitEventMsg {
         };
 
         for field in fields {
-            match field.field_def {
-                4 => { msg.event_group = Some(field.get_u8()); },
-                12 => { msg.rear_gear = Some(field.get_u8()); },
-                2 => { msg.data16 = Some(field.get_u16()); },
-                0 => { msg.event = Some(field.get_u8()); },
-                11 => { msg.rear_gear_num = Some(field.get_u8()); },
-                7 => { msg.score = Some(field.get_u16()); },
-                3 => { msg.data = Some(field.get_u32()); },
-                21 => { msg.radar_threat_level_max = Some(field.get_u8()); },
-                10 => { msg.front_gear = Some(field.get_u8()); },
-                13 => { msg.device_index = Some(field.get_u8()); },
-                8 => { msg.opponent_score = Some(field.get_u16()); },
-                253 => { msg.timestamp = Some(field.get_u32()); },
-                1 => { msg.event_type = Some(field.get_u8()); },
-                22 => { msg.radar_threat_count = Some(field.get_u8()); },
-                9 => { msg.front_gear_num = Some(field.get_u8()); },
-                _ => { /* panic!("Record field not implemented {:#x}", field.field_def); */ }
+            if !field.is_dev_field {
+                match field.field_def {
+                    4 => { msg.event_group = Some(field.get_u8()); },
+                    12 => { msg.rear_gear = Some(field.get_u8()); },
+                    2 => { msg.data16 = Some(field.get_u16()); },
+                    0 => { msg.event = Some(field.get_u8()); },
+                    11 => { msg.rear_gear_num = Some(field.get_u8()); },
+                    7 => { msg.score = Some(field.get_u16()); },
+                    3 => { msg.data = Some(field.get_u32()); },
+                    21 => { msg.radar_threat_level_max = Some(field.get_u8()); },
+                    10 => { msg.front_gear = Some(field.get_u8()); },
+                    13 => { msg.device_index = Some(field.get_u8()); },
+                    8 => { msg.opponent_score = Some(field.get_u16()); },
+                    253 => { msg.timestamp = Some(field.get_u32()); },
+                    1 => { msg.event_type = Some(field.get_u8()); },
+                    22 => { msg.radar_threat_count = Some(field.get_u8()); },
+                    9 => { msg.front_gear_num = Some(field.get_u8()); },
+                    _ => { /* panic!("Record field not implemented {:#x}", field.field_def); */ }
+                }
             }
         }
         msg
@@ -1180,71 +1190,73 @@ pub enum FieldType {
 pub struct FitFieldValue {
     pub field_def: u8, // From the message definition
     pub field_type: FieldType, // Tells us which of the following to use
-    pub num_uint: u64,
-    pub num_sint: i64,
-    pub num_float: f64,
-    pub byte_array: Vec<u8>,
-    pub string: String
+    pub value_uint: u64,
+    pub value_sint: i64,
+    pub value_float: f64,
+    pub value_byte_array: Vec<u8>,
+    pub value_string: String,
+    pub is_dev_field: bool
 }
 
 impl FitFieldValue {
     pub fn new() -> Self {
-        let state = FitFieldValue{ field_def: 0, field_type: FieldType::FieldTypeNotSet, num_uint: 0, num_sint: 0, num_float: 0.0, byte_array: Vec::<u8>::new(), string: String::new() };
+        let state = FitFieldValue{ field_def: 0, field_type: FieldType::FieldTypeNotSet, value_uint: 0, value_sint: 0, value_float: 0.0, value_byte_array: Vec::<u8>::new(), value_string: String::new(), is_dev_field: false };
         state
     }
 
     pub fn get_i8(&self) -> i8 {
-        return self.num_sint as i8;
+        return self.value_sint as i8;
     }
 
     pub fn get_i16(&self) -> i16 {
-        return self.num_sint as i16;
+        return self.value_sint as i16;
     }
 
     pub fn get_i32(&self) -> i32 {
-        return self.num_sint as i32;
+        return self.value_sint as i32;
     }
 
     pub fn get_i64(&self) -> i64 {
-        return self.num_sint as i64;
+        return self.value_sint as i64;
     }
 
     pub fn get_u8(&self) -> u8 {
-        return self.num_uint as u8;
+        return self.value_uint as u8;
     }
 
     pub fn get_u16(&self) -> u16 {
-        return self.num_uint as u16;
+        return self.value_uint as u16;
     }
 
     pub fn get_u32(&self) -> u32 {
-        return self.num_uint as u32;
+        return self.value_uint as u32;
     }
 
     pub fn get_u64(&self) -> u64 {
-        return self.num_uint as u64;
+        return self.value_uint as u64;
     }
 
     pub fn get_f32(&self) -> f32 {
-        return self.num_float as f32;
+        return self.value_float as f32;
     }
 
     pub fn get_f64(&self) -> f64 {
-        return self.num_float as f64;
+        return self.value_float as f64;
     }
 }
 
 /// Encapsulates a custom field definition, as described by definition messages and used by data messages.
 #[derive(Copy, Clone, Debug, Default)]
 pub struct FieldDefinition {
-    pub field_def: u8,
-    pub size: u8,
-    pub base_type: u8
+    pub field_def: u8, // Field definition number
+    pub size: u8, // Number of bytes
+    pub base_type: u8, // Base type (from the SDK)
+    pub is_dev_field: bool // Set if this represents a developer defined field
 }
 
 impl Ord for FieldDefinition {
     fn cmp(&self, other: &Self) -> Ordering {
-        (self.field_def, &self.size, &self.base_type).cmp(&(other.field_def, &other.size, &other.base_type))
+        (self.field_def, &self.size, &self.base_type, &self.is_dev_field).cmp(&(other.field_def, &other.size, &other.base_type, &other.is_dev_field))
     }
 }
 
@@ -1256,7 +1268,7 @@ impl PartialOrd for FieldDefinition {
 
 impl PartialEq for FieldDefinition {
     fn eq(&self, other: &Self) -> bool {
-        (self.field_def, &self.size) == (other.field_def, &other.size)
+        (self.field_def, &self.size, &self.is_dev_field) == (other.field_def, &other.size, &other.is_dev_field)
     }
 }
 
@@ -1269,14 +1281,14 @@ pub type FieldDefinitionList = Vec<FieldDefinition>;
 struct FitState {
     endianness_map: HashMap<u8, bool>, // true = messages of the given local message type are in big endian format
     global_msg_map: HashMap<u8, u16>, // Associates local message types with global message numbers
-    local_msg_definitions: HashMap<u8, FieldDefinitionList>, // Describes the format of local messages, key is the local message type
+    field_defs: HashMap<u8, FieldDefinitionList>, // Describes the format of local messages, key is the local message type
     timestamp: u32, // Current timestamp, listed here as it may be updated by a compressed timestamp header
     bytes_read: u64 // Number of bytes read so far
 }
 
 impl FitState {
     pub fn new() -> Self {
-        let state = FitState{ endianness_map: HashMap::<u8, bool>::new(), global_msg_map: HashMap::<u8, u16>::new(), local_msg_definitions: HashMap::<u8, FieldDefinitionList>::new(), timestamp: 0, bytes_read: 0 };
+        let state = FitState{ endianness_map: HashMap::<u8, bool>::new(), global_msg_map: HashMap::<u8, u16>::new(), field_defs: HashMap::<u8, FieldDefinitionList>::new(), timestamp: 0, bytes_read: 0 };
         state
     }
 
@@ -1284,13 +1296,18 @@ impl FitState {
     fn print(&self) {
         println!("----------------------------------------");
 
-        for (local_msg_type, _local_msg_def) in &self.local_msg_definitions {
+        for (local_msg_type, local_msg_def) in &self.field_defs {
             println!("Local Msg Type {}:", local_msg_type);
+            for field_def in local_msg_def.iter() {
+                println!("   Field Def {} Size {} Base Type {:#x}", field_def.field_def, field_def.size, field_def.base_type);
+            }
         }
+
+        println!("----------------------------------------");
     }
 
     /// Adds the given global message/local message combo to the hash map.
-    fn insert_local_msg_def(&mut self, local_msg_type: u8, is_big_endian: bool, global_msg_num: u16, local_msg_def: FieldDefinitionList) {
+    fn insert_local_msg_def(&mut self, local_msg_type: u8, is_big_endian: bool, global_msg_num: u16, field_defs: FieldDefinitionList) {
 
         // Update the endianness map.
         if self.endianness_map.contains_key(&local_msg_type) {
@@ -1305,10 +1322,10 @@ impl FitState {
         self.global_msg_map.insert(local_msg_type, global_msg_num);
 
         // Update the message definition.
-        if self.local_msg_definitions.contains_key(&local_msg_type) {
-            self.local_msg_definitions.remove(&local_msg_type);
+        if self.field_defs.contains_key(&local_msg_type) {
+            self.field_defs.remove(&local_msg_type);
         }
-        self.local_msg_definitions.insert(local_msg_type, local_msg_def);
+        self.field_defs.insert(local_msg_type, field_defs);
     }
 }
 
@@ -1336,6 +1353,7 @@ impl FitHeader {
         // Does this file use the newer, 14 byte header?
         if self.header[HEADER_FILE_SIZE_OFFSET] == 14 {
             let mut additional_bytes = read_n(reader, 2)?;
+
             self.header.append(&mut additional_bytes);
             self.header_len = self.header_len + 2;
         }
@@ -1412,7 +1430,7 @@ impl FitRecord {
             state.bytes_read = state.bytes_read + 3;
 
             // Add the definition.
-            let field_def = FieldDefinition { field_def:field_num, size:field_bytes, base_type:field_type };
+            let field_def = FieldDefinition { field_def:field_num, size:field_bytes, base_type:field_type, is_dev_field:false };
             field_defs.push(field_def);
         }
 
@@ -1432,7 +1450,7 @@ impl FitRecord {
                 state.bytes_read = state.bytes_read + 3;
 
                 // Add the definition.
-                let field_def = FieldDefinition { field_def:field_num, size:field_bytes, base_type:field_type };
+                let field_def = FieldDefinition { field_def:field_num, size:field_bytes, base_type:field_type, is_dev_field:true };
                 field_defs.push(field_def);
             }
         }
@@ -1464,7 +1482,7 @@ impl FitRecord {
             let e = Error::new(std::io::ErrorKind::NotFound, "Field definition not found.");
             return Err(e);
         }
-        if !state.local_msg_definitions.contains_key(&local_msg_type) {
+        if !state.field_defs.contains_key(&local_msg_type) {
             let e = Error::new(std::io::ErrorKind::NotFound, "Field definition not found.");
             return Err(e);
         }
@@ -1475,7 +1493,7 @@ impl FitRecord {
         // Retrieve the field definitions based on the message type.
         let is_big_endian = *state.endianness_map.get(&local_msg_type).unwrap();
         let global_msg_num = *state.global_msg_map.get(&local_msg_type).unwrap();
-        let field_defs = state.local_msg_definitions.get(&local_msg_type).unwrap();
+        let field_defs = state.field_defs.get(&local_msg_type).unwrap();
 
         // Read data for each message definition.
         let mut fields = Vec::new();
@@ -1485,6 +1503,7 @@ impl FitRecord {
 
             let mut field = FitFieldValue::new();
             field.field_def = def.field_def;
+            field.is_dev_field = def.is_dev_field;
 
             // Read the number of bytes prescribed by the field definition.
             let data = read_n(reader, def.size as u64)?;
@@ -1509,24 +1528,27 @@ impl FitRecord {
             // Normal field.
             else {
                 match def.base_type {
-                    0x00 => { field.num_uint = byte_array_to_uint8(data) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                    0x01 => { field.num_sint = byte_array_to_sint8(data) as i64; field.field_type = FieldType::FieldTypeSInt; },
-                    0x02 => { field.num_uint = byte_array_to_uint8(data) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                    0x83 => { field.num_sint = byte_array_to_sint16(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
-                    0x84 => { field.num_uint = byte_array_to_uint16(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                    0x85 => { field.num_sint = byte_array_to_sint32(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
-                    0x86 => { field.num_uint = byte_array_to_uint32(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                    0x07 => { field.string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; },
-                    0x88 => { field.num_float = byte_array_to_float(data, 4, is_big_endian); field.field_type = FieldType::FieldTypeFloat; },
-                    0x89 => { field.num_float = byte_array_to_float(data, 8, is_big_endian); field.field_type = FieldType::FieldTypeFloat; },
-                    0x0A => { field.num_uint = byte_array_to_uint8(data) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                    0x8B => { field.num_uint = byte_array_to_uint16(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                    0x8C => { field.num_uint = byte_array_to_uint32(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                    0x0D => { field.byte_array = data; field.field_type = FieldType::FieldTypeByteArray; },
-                    0x8E => { field.num_sint = byte_array_to_sint64(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
-                    0x8F => { field.num_uint = byte_array_to_uint64(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                    0x90 => { field.num_uint = byte_array_to_uint64(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
-                    _ => { /* panic!("Base Type not implemented {:#x}", def.base_type); */ }
+                    0x00 => { field.value_uint = byte_array_to_uint8(data) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                    0x01 => { field.value_sint = byte_array_to_sint8(data) as i64; field.field_type = FieldType::FieldTypeSInt; },
+                    0x02 => { field.value_uint = byte_array_to_uint8(data) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                    0x83 => { field.value_sint = byte_array_to_sint16(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
+                    0x84 => { field.value_uint = byte_array_to_uint16(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                    0x85 => { field.value_sint = byte_array_to_sint32(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
+                    0x86 => { field.value_uint = byte_array_to_uint32(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                    0x07 => { field.value_string = byte_array_to_string(data, def.size as usize); field.field_type = FieldType::FieldTypeStr; },
+                    0x88 => { field.value_float = byte_array_to_float(data, 4, is_big_endian); field.field_type = FieldType::FieldTypeFloat; },
+                    0x89 => { field.value_float = byte_array_to_float(data, 8, is_big_endian); field.field_type = FieldType::FieldTypeFloat; },
+                    0x0A => { field.value_uint = byte_array_to_uint8(data) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                    0x8B => { field.value_uint = byte_array_to_uint16(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                    0x8C => { field.value_uint = byte_array_to_uint32(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                    0x0D => { field.value_byte_array = data; field.field_type = FieldType::FieldTypeByteArray; },
+                    0x8E => { field.value_sint = byte_array_to_sint64(data, is_big_endian) as i64; field.field_type = FieldType::FieldTypeSInt; },
+                    0x8F => { field.value_uint = byte_array_to_uint64(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                    0x90 => { field.value_uint = byte_array_to_uint64(data, is_big_endian) as u64; field.field_type = FieldType::FieldTypeUInt; },
+                    _ => { if !def.is_dev_field {
+                            panic!("Base type {:#x} not implemented for field {:#x} and local message type {}. Bytes read so far {:#x}.", def.base_type, def.field_def, local_msg_type, state.bytes_read + bytes_read as u64);
+                        }
+                    }
                 }
                 fields.push(field);
             }

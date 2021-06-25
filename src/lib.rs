@@ -106,7 +106,7 @@ mod tests {
                 println!("[Record Message] Timestamp: {} Latitude: {} Longitude: {} Altitude: {}", timestamp, latitude, longitude, altitude);
             }
             else {
-                println!("Invalid location data");
+                println!("[Record Message] Invalid location data");
             }
         }
         else {
@@ -114,7 +114,7 @@ mod tests {
             let mut field_num = 1;
 
             match global_message_names.get(&global_message_num) {
-                Some(name) => print!("[{} Message Local Message Type {}] Timestamp {}, Values: ", name, local_msg_type, timestamp),
+                Some(name) => print!("[{} Message] Timestamp {}, Values: ", name, timestamp),
                 None => print!("[Global Message Num {} Local Message Type {}] Timestamp {}, Values: ", global_message_num, local_msg_type, timestamp)
             }
 
@@ -123,15 +123,15 @@ mod tests {
 
                 match field.field_type {
                     crate::fit_file::FieldType::FieldTypeNotSet => { print!("[not set] "); },
-                    crate::fit_file::FieldType::FieldTypeUInt => { print!("{} ", field.num_uint); },
-                    crate::fit_file::FieldType::FieldTypeSInt => { print!("{} ", field.num_sint); },
-                    crate::fit_file::FieldType::FieldTypeFloat => { print!("{} ", field.num_float); },
+                    crate::fit_file::FieldType::FieldTypeUInt => { print!("{} ", field.value_uint); },
+                    crate::fit_file::FieldType::FieldTypeSInt => { print!("{} ", field.value_sint); },
+                    crate::fit_file::FieldType::FieldTypeFloat => { print!("{} ", field.value_float); },
                     crate::fit_file::FieldType::FieldTypeByteArray => {
-                        for byte in field.byte_array.iter() {
+                        for byte in field.value_byte_array.iter() {
                             print!("{:#04x} ", byte);
                         }
                     },
-                    crate::fit_file::FieldType::FieldTypeStr => { print!("\"{}\" ", field.string); },
+                    crate::fit_file::FieldType::FieldTypeStr => { print!("\"{}\" ", field.value_string); },
                 }
 
                 field_num = field_num + 1;
@@ -303,11 +303,13 @@ mod tests {
         println!("        }};");
         println!("");
         println!("        for field in fields {{");
-        println!("            match field.field_def {{");
+        println!("            if !field.is_dev_field {{");
+        println!("                match field.field_def {{");
         for (field_name, (field_id, field_type)) in field_map.iter() {
-            println!("                {} => {{ msg.{} = Some(field.get_{}()); }},", field_id, field_name, *field_type);
+            println!("                    {} => {{ msg.{} = Some(field.get_{}()); }},", field_id, field_name, *field_type);
         }
         println!("");
+        println!("                }}");
         println!("            }}");
         println!("        }}");
         println!("        msg");
