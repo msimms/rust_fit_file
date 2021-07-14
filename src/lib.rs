@@ -109,6 +109,11 @@ mod tests {
                 println!("[Record Message] Invalid location data");
             }
         }
+        else if global_message_num == crate::fit_file::GLOBAL_MSG_NUM_LENGTH {
+            // Increment the number of records processed.
+            let data: &mut Context = unsafe { &mut *(context as *mut Context) };
+            data.num_length_msgs_processed = data.num_length_msgs_processed + 1;
+        }
         else {
             let global_message_names = crate::fit_file::init_global_msg_name_map();
             let mut field_num = 1;
@@ -143,12 +148,13 @@ mod tests {
     /// Context structure. An instance of this will be passed to the parser and ultimately to the callback function so we can use it for whatever.
     struct Context {
         num_records_processed: u16,
+        num_length_msgs_processed: u16,
         accumulated_power: u64
     }
 
     impl Context {
         pub fn new() -> Self {
-            let context = Context{ num_records_processed: 0, accumulated_power: 0 };
+            let context = Context{ num_records_processed: 0, num_length_msgs_processed: 0, accumulated_power: 0 };
             context
         }
     }
@@ -250,6 +256,26 @@ mod tests {
                 println!("");
                 println!("Num records processed: {}", context.num_records_processed);
                 assert!(context.num_records_processed == 1672);
+            }
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn file5_pool_swim() {
+        let file = std::fs::File::open("tests/20210709_pool_swim.fit").unwrap();
+        let mut reader = std::io::BufReader::new(file);
+        let mut context = Context::new();
+        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
+        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
+
+        match fit {
+            Ok(fit) => {
+                print!("FIT File Header: ");
+                fit.header.print();
+                println!("");
+                println!("Num records processed: {}", context.num_length_msgs_processed);
+                assert!(context.num_length_msgs_processed == 55);
             }
             _ => (),
         }
