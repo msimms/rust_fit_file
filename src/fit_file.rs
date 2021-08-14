@@ -54,6 +54,7 @@ const FIELD_MSG_INDEX: u8 = 254;
 const FIELD_TIMESTAMP: u8 = 253;
 const FIELD_PART_INDEX: u8 = 250;
 
+// Record message header byte offsets.
 const RECORD_HDR_NORMAL: u8 = 0x80;
 const RECORD_HDR_MSG_TYPE: u8 = 0x40;
 const RECORD_HDR_MSG_TYPE_SPECIFIC: u8 = 0x20;
@@ -61,6 +62,7 @@ const RECORD_HDR_RESERVED: u8 = 0x10;
 const RECORD_HDR_LOCAL_MSG_TYPE: u8 = 0x0f;
 const RECORD_HDR_LOCAL_MSG_TYPE_COMPRESSED: u8 = 0x60;
 
+// Global message numbers.
 pub const GLOBAL_MSG_NUM_FILE_ID: u16 = 0;
 pub const GLOBAL_MSG_NUM_CAPABILITIES: u16 = 1;
 pub const GLOBAL_MSG_NUM_DEVICE_SETTINGS: u16 = 2;
@@ -150,6 +152,29 @@ pub const GLOBAL_MSG_NUM_DIVE_SUMMARY: u16 = 268;
 pub const GLOBAL_MSG_NUM_JUMP: u16 = 285;
 pub const GLOBAL_MSG_NUM_CLIMB_PRO: u16 = 317;
 
+// File enumeration, used in the FileId message.
+pub const FIT_FILE_DEVICE: u8 = 1;
+pub const FIT_FILE_SETTINGS: u8 = 2;
+pub const FIT_FILE_SPORT: u8 = 3;
+pub const FIT_FILE_ACTIVITY: u8 = 4;
+pub const FIT_FILE_WORKOUT: u8 = 5;
+pub const FIT_FILE_COURSE: u8 = 6;
+pub const FIT_FILE_SCHEDULES: u8 = 7;
+pub const FIT_FILE_WEIGHT: u8 = 9;
+pub const FIT_FILE_TOTALS: u8 = 10;
+pub const FIT_FILE_GOALS: u8 = 11;
+pub const FIT_FILE_BLOOD_PRESSURE: u8 = 14;
+pub const FIT_FILE_MONITORING_A: u8 = 15;
+pub const FIT_FILE_ACTIVITY_SUMMARY: u8 = 20;
+pub const FIT_FILE_MONITORING_DAILY: u8 = 28;
+pub const FIT_FILE_MONITORING_B: u8 = 32;
+pub const FIT_FILE_SEGMENT: u8 = 34;
+pub const FIT_FILE_SEGMENT_LIST: u8 = 35;
+pub const FIT_FILE_EXD_CONFIGURATION: u8 = 50;
+pub const FIT_FILE_MFG_RANGE_MIN: u8 = 0xF7;
+pub const FIT_FILE_MFG_RANGE_MAX: u8 = 0xFE;
+
+// Sport enumeration.
 pub const FIT_SPORT_GENERIC: u8 = 0;
 pub const FIT_SPORT_RUNNING: u8 = 1;
 pub const FIT_SPORT_CYCLING: u8 = 2;
@@ -202,6 +227,7 @@ pub const FIT_SPORT_FLOOR_CLIMBING: u8 = 48;
 pub const FIT_SPORT_DIVING: u8 = 53;
 pub const FIT_SPORT_ALL: u8 = 254;
 
+// Swim stroke enumeration.
 pub const FIT_ENUM_INVALID: u8 = 0xff;
 pub const FIT_STROKE_TYPE_INVALID: u8 = FIT_ENUM_INVALID;
 pub const FIT_STROKE_TYPE_NO_EVENT: u8 = 0;
