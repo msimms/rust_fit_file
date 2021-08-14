@@ -119,12 +119,12 @@ mod tests {
             let mut field_num = 1;
 
             match global_message_names.get(&global_message_num) {
-                Some(name) => print!("[{} Message] Timestamp {}, Values: ", name, timestamp),
-                None => print!("[Global Message Num {} Local Message Type {}] Timestamp {}, Values: ", global_message_num, local_msg_type, timestamp)
+                Some(name) => println!("[{} Message] Timestamp {}, Values: ", name, timestamp),
+                None => println!("[Global Message Num {} Local Message Type {}] Timestamp {}, Values: ", global_message_num, local_msg_type, timestamp)
             }
 
             for field in fields {
-                print!("({}) Type: {}, Value: ", field_num, field.field_def);
+                print!("   ({}) Type: {}, Value: ", field_num, field.field_def);
 
                 match field.field_type {
                     crate::fit_file::FieldType::FieldTypeNotSet => { print!("[not set] "); },
@@ -140,6 +140,7 @@ mod tests {
                 }
 
                 field_num = field_num + 1;
+                println!("");
             }
             println!("");
         }
