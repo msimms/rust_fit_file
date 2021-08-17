@@ -124,9 +124,9 @@ mod tests {
             }
 
             for field in fields {
-                print!("   ({}) Type: {}, Value: ", field_num, field.field_def);
+                print!("   ({}) Base Type: {}, Value: ", field_num, field.base_type);
 
-                match field.field_type {
+                match field.type_enum {
                     crate::fit_file::FieldType::FieldTypeNotSet => { print!("[not set] "); },
                     crate::fit_file::FieldType::FieldTypeUInt => { print!("{} ", field.value_uint); },
                     crate::fit_file::FieldType::FieldTypeSInt => { print!("{} ", field.value_sint); },
