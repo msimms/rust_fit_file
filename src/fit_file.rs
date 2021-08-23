@@ -238,6 +238,17 @@ pub const FIT_STROKE_TYPE_BACKHAND: u8 = 4;
 pub const FIT_STROKE_TYPE_SMASH: u8 = 5;
 pub const FIT_STROKE_TYPE_COUNT: u8 = 6;
 
+// Lap trigger enumation.
+pub const FIT_LAP_TRIGGER_MANUAL: u8 = 0;
+pub const FIT_LAP_TRIGGER_TIME: u8 = 1;
+pub const FIT_LAP_TRIGGER_DISTANCE: u8 = 2;
+pub const FIT_LAP_TRIGGER_POSITION_START: u8 = 3;
+pub const FIT_LAP_TRIGGER_POSITION_LAP: u8 = 4;
+pub const FIT_LAP_TRIGGER_POSITION_WAYPOINT: u8 = 5;
+pub const FIT_LAP_TRIGGER_POSITION_MARKED: u8 = 6;
+pub const FIT_LAP_TRIGGER_SESSION_END: u8 = 7;
+pub const FIT_LAP_TRIGGER_FITNESS_EQUIPMENT: u8 = 8;
+
 // Base types.
 pub const FIT_BASE_TYPE_ENUM: u8 = 0x00;
 pub const FIT_BASE_TYPE_SINT8: u8 = 0x01;
