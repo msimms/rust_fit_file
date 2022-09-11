@@ -1,7 +1,7 @@
 # fit_file
 FIT file parser written in Rust. FIT (Flexible and Interoperable Data Transfer) is a binary file format that is commonly used to exchange fitness data, such as that from a sports watch or bike computer.
 
-This implementation uses a callback, as shown in the example below. The callback is an effient method for dealing with large files as it allows us to avoid returning a large array containing each of the records that was processed.
+This implementation uses a callback, as shown in the example below. The callback is an efficient method for dealing with large files as it allows us to avoid returning a large array containing each of the records that was processed.
 
 ## Example
 ```rust
