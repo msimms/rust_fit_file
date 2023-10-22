@@ -5,15 +5,11 @@ This implementation uses a callback, as shown in the example below. The callback
 
 ## Example
 ```rust
-extern crate fit;
-
-use std::io::BufReader;
-use std::fs::File;
+use fit_file as fit;
+use fit_file::fit_file;
 
 /// Called for each record message as it is processed.
-fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, _message_index: u16, fields: Vec<crate::fit_file::FitFieldValue>, context: *mut c_void) {
-    let data: &mut Context = unsafe { &mut *(context as *mut Context) };
-
+fn callback(timestamp: u32, global_message_num: u16, _local_msg_type: u8, _message_index: u16, fields: Vec<crate::fit_file::FitFieldValue>, data: &mut Context) {
     if global_message_num == crate::fit::GLOBAL_MSG_NUM_SESSION {
         let msg = crate::fit::FitSessionMsg::new(fields);
         let sport_names = crate::fit::init_sport_name_map();
@@ -23,6 +19,8 @@ fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, _messag
     }
     else if global_message_num == crate::fit::GLOBAL_MSG_NUM_RECORD {
         let msg = crate::fit::FitRecordMsg::new(fields);
+
+        data.num_records_processed += 1;
 
         println!("Timestamp: {} Latitude: {} Longitude: {}", timestamp, crate::fit::semicircles_to_degrees(msg.position_lat.unwrap()), crate::fit::semicircles_to_degrees(msg.position_long.unwrap()));
     }
@@ -44,8 +42,8 @@ fn main() {
     let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
     let mut reader = std::io::BufReader::new(file);
     let mut context = Context::new();
-    let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
-    let fit = crate::fit::read(&mut reader, callback, context_ptr);
+    crate::fit::read(&mut reader, callback, &mut context).unwrap();
+    println!("{} records processed", context.num_records_processed);
 }
 ```
 ## Current Status
