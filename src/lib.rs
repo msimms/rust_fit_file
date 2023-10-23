@@ -24,13 +24,11 @@ pub mod fit_file;
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::c_void;
     use std::collections::HashMap;
     extern crate csv;
 
     /// Called for each record message as it is processed.
-    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, _message_index: u16, fields: Vec<crate::fit_file::FitFieldValue>, context: *mut c_void) {
-
+    fn callback(timestamp: u32, global_message_num: u16, local_msg_type: u8, _message_index: u16, fields: Vec<crate::fit_file::FitFieldValue>, data: &mut Context) {
         if global_message_num == crate::fit_file::GLOBAL_MSG_NUM_SESSION {
             let msg = crate::fit_file::FitSessionMsg::new(fields);
             let sport_names = crate::fit_file::init_sport_name_map();
@@ -98,7 +96,6 @@ mod tests {
             }
 
             // Increment the number of records processed.
-            let data: &mut Context = unsafe { &mut *(context as *mut Context) };
             data.num_records_processed = data.num_records_processed + 1;
             data.accumulated_power = data.accumulated_power + power as u64;
 
@@ -111,7 +108,6 @@ mod tests {
         }
         else if global_message_num == crate::fit_file::GLOBAL_MSG_NUM_LENGTH {
             // Increment the number of records processed.
-            let data: &mut Context = unsafe { &mut *(context as *mut Context) };
             data.num_length_msgs_processed = data.num_length_msgs_processed + 1;
         }
         else {
@@ -165,8 +161,7 @@ mod tests {
         let file = std::fs::File::open("tests/20210218_zwift.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let mut context = Context::new();
-        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
-        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
+        let fit = crate::fit_file::read(&mut reader, callback, &mut context);
 
         match fit {
             Ok(fit) => {
@@ -185,8 +180,7 @@ mod tests {
         let file = std::fs::File::open("tests/20191117_bike_wahoo_elemnt.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let mut context = Context::new();
-        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
-        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
+        let fit = crate::fit_file::read(&mut reader, callback, &mut context);
 
         match fit {
             Ok(fit) => {
@@ -205,8 +199,7 @@ mod tests {
         let file = std::fs::File::open("tests/20200529_short_ocean_swim.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let mut context = Context::new();
-        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
-        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
+        let fit = crate::fit_file::read(&mut reader, callback, &mut context);
 
         match fit {
             Ok(fit) => {
@@ -225,8 +218,7 @@ mod tests {
         let file = std::fs::File::open("tests/20210507_run_coros_pace_2.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let mut context = Context::new();
-        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
-        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
+        let fit = crate::fit_file::read(&mut reader, callback, &mut context);
 
         match fit {
             Ok(fit) => {
@@ -247,8 +239,7 @@ mod tests {
         let file = std::fs::File::open("tests/20210610_track_garmin_fenix_6.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let mut context = Context::new();
-        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
-        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
+        let fit = crate::fit_file::read(&mut reader, callback, &mut context);
 
         match fit {
             Ok(fit) => {
@@ -267,8 +258,7 @@ mod tests {
         let file = std::fs::File::open("tests/20210709_pool_swim.fit").unwrap();
         let mut reader = std::io::BufReader::new(file);
         let mut context = Context::new();
-        let context_ptr: *mut c_void = &mut context as *mut _ as *mut c_void;
-        let fit = crate::fit_file::read(&mut reader, callback, context_ptr);
+        let fit = crate::fit_file::read(&mut reader, callback, &mut context);
 
         match fit {
             Ok(fit) => {
