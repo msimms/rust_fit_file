@@ -23,7 +23,7 @@
 pub mod fit_file;
 
 #[cfg(test)]
-mod tests {
+mod activity_tests {
     use std::collections::HashMap;
     extern crate csv;
 
@@ -412,5 +412,388 @@ mod tests {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod workout_tests {
+    use std::{fs::File, io::BufReader};
+
+    use crate::fit_file::{self, FitWorkoutStepMsg};
+
+    #[derive(Debug, PartialEq)]
+    struct Workout {
+        workout_message: Option<fit_file::FitWorkoutMsg>,
+        steps: Vec<fit_file::FitWorkoutStepMsg>,
+    }
+
+    impl Workout {
+        fn new() -> Workout {
+            Workout {
+                workout_message: None,
+                steps: Vec::new(),
+            }
+        }
+    }
+
+    fn callback(_timestamp: u32, global_message_num: u16, _local_msg_type: u8, message_index: u16, fields: Vec<crate::fit_file::FitFieldValue>, data: &mut Workout) {
+        if global_message_num == fit_file::GLOBAL_MSG_NUM_WORKOUT_STEP {
+            let step = fit_file::FitWorkoutStepMsg::new(message_index, fields);
+            data.steps.push(step);
+        } else if global_message_num == fit_file::GLOBAL_MSG_NUM_WORKOUT {
+            let workout = fit_file::FitWorkoutMsg::new(fields);
+            data.workout_message = Some(workout);
+        }
+    }
+
+    #[test]
+    fn it_parses_workout_with_repeated_steps() {
+        let mut wko = Workout::new();
+
+        let file = File::open("tests/WorkoutRepeatSteps.fit").unwrap();
+        let mut reader = BufReader::new(file);
+        fit_file::read(&mut reader, callback, &mut wko).unwrap();
+
+        let expected = Workout{
+             workout_message: Some(fit_file::FitWorkoutMsg {
+                 message_index: None,
+                 sport: None,
+                 capabilities: None,
+                 num_valid_steps: Some(4),
+                 workout_name: Some("Example 2".into()),
+                 sub_sport: None,
+                 pool_length: None,
+                 pool_length_unit: None,
+             }),
+             steps: vec![
+                 FitWorkoutStepMsg {
+                     message_index: 0,
+                     step_name: Some("_A_".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_TIME),
+                     duration_value: Some(60000), // 60s
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_HEART_RATE),
+                     target_value: Some(2), // HR zone 2
+                     custom_target_low: None,
+                     custom_target_high: None,
+                     intensity: Some(fit_file::INTENSITY_WARM_UP),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: None,
+                     secondary_target_value: None,
+                     secondary_custom_target_low: None,
+                     secondary_custom_target_high: None,
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 1,
+                     step_name: Some("B1_".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_DISTANCE),
+                     duration_value: Some(50000), // 500m
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_POWER),
+                     target_value: Some(5), // Power zone 5
+                     custom_target_low: None,
+                     custom_target_high: None,
+                     intensity: Some(fit_file::INTENSITY_ACTIVE),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: None,
+                     secondary_target_value: None,
+                     secondary_custom_target_low: None,
+                     secondary_custom_target_high: None,
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 2,
+                     step_name: Some("B2_".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_DISTANCE),
+                     duration_value: Some(50000),
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_POWER),
+                     target_value: Some(3),
+                     custom_target_low: None,
+                     custom_target_high: None,
+                     intensity: Some(fit_file::INTENSITY_ACTIVE),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: None,
+                     secondary_target_value: None,
+                     secondary_custom_target_low: None,
+                     secondary_custom_target_high: None,
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 3,
+                     step_name: Some("Rep".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_REPEAT_UNTIL_STEPS_COMPLETE),
+                     duration_value: Some(1), // repeat from step with message_index 1
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_OPEN),
+                     target_value: Some(3), // 3 repetitions
+                     custom_target_low: None,
+                     custom_target_high: None,
+                     intensity: Some(fit_file::INTENSITY_ACTIVE),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: None,
+                     secondary_target_value: None,
+                     secondary_custom_target_low: None,
+                     secondary_custom_target_high: None,
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 4,
+                     step_name: Some("_C_".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_HEART_RATE_LESS_THAN),
+                     duration_value: Some(225), // 125BPM
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_POWER),
+                     target_value: Some(1),
+                     custom_target_low: None,
+                     custom_target_high: None,
+                     intensity: Some(fit_file::INTENSITY_COOL_DOWN),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: None,
+                     secondary_target_value: None,
+                     secondary_custom_target_low: None,
+                     secondary_custom_target_high: None,
+                 },
+             ],
+        };
+
+        assert_eq!(wko.workout_message, expected.workout_message);
+        assert_eq!(wko.steps.len(), expected.steps.len());
+        for (i, expected_step) in expected.steps.iter().enumerate() {
+            let wko_step = wko.steps.get(i).unwrap();
+            assert_eq!(wko_step, expected_step);
+        }
+    }
+
+    #[test]
+    fn it_parses_workout_with_custom_targets() {
+        let mut wko = Workout::new();
+
+        let file = File::open("tests/WorkoutCustomTargetValues.fit").unwrap();
+        let mut reader = BufReader::new(file);
+        fit_file::read(&mut reader, callback, &mut wko).unwrap();
+
+        let expected = Workout{
+             workout_message: Some(fit_file::FitWorkoutMsg {
+                 message_index: None,
+                 sport: None,
+                 capabilities: None,
+                 num_valid_steps: Some(4),
+                 workout_name: Some("Example 1".into()),
+                 sub_sport: None,
+                 pool_length: None,
+                 pool_length_unit: None,
+             }),
+             steps: vec![
+                 FitWorkoutStepMsg {
+                     message_index: 0,
+                     step_name: Some("_A_".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_TIME),
+                     duration_value: Some(60000), // 60s
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_HEART_RATE),
+                     target_value: Some(0),
+                     custom_target_low: Some(50), // 50% max HR
+                     custom_target_high: Some(60), // 50% max HR
+                     intensity: Some(fit_file::INTENSITY_WARM_UP),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: None,
+                     secondary_target_value: None,
+                     secondary_custom_target_low: None,
+                     secondary_custom_target_high: None,
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 1,
+                     step_name: Some("B1_".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_DISTANCE),
+                     duration_value: Some(50000), // 500m
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_POWER),
+                     target_value: Some(0), // Custom
+                     custom_target_low: Some(1300), // 300W
+                     custom_target_high: Some(1310), // 310W
+                     intensity: Some(fit_file::INTENSITY_ACTIVE),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: None,
+                     secondary_target_value: None,
+                     secondary_custom_target_low: None,
+                     secondary_custom_target_high: None,
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 2,
+                     step_name: Some("B2_".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_DISTANCE),
+                     duration_value: Some(50000), // 500m
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_POWER),
+                     target_value: Some(0),
+                     custom_target_low: Some(1260), // 260W
+                     custom_target_high: Some(1270), // 270W
+                     intensity: Some(fit_file::INTENSITY_ACTIVE),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: None,
+                     secondary_target_value: None,
+                     secondary_custom_target_low: None,
+                     secondary_custom_target_high: None,
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 3,
+                     step_name: Some("_C_".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_HEART_RATE_LESS_THAN),
+                     duration_value: Some(225), // 125 BPM
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_POWER),
+                     target_value: Some(0),
+                     custom_target_low: Some(1220), // 220W
+                     custom_target_high: Some(1230), // 230W
+                     intensity: Some(fit_file::INTENSITY_COOL_DOWN),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: None,
+                     secondary_target_value: None,
+                     secondary_custom_target_low: None,
+                     secondary_custom_target_high: None,
+                 },
+             ],
+        };
+
+        assert_eq!(wko.workout_message, expected.workout_message);
+        assert_eq!(wko.steps.len(), expected.steps.len());
+        for (i, expected_step) in expected.steps.iter().enumerate() {
+            let wko_step = wko.steps.get(i).unwrap();
+            assert_eq!(wko_step, expected_step);
+        }
+    }
+
+    #[test]
+    fn it_parses_trainingpeaks_workout_with_secondary_targets() {
+        // TrainingPeaks exports .fit files with a lot of invalid values for enums
+        // instead of omitting the optional fields or using the specified value in the context
+        // of repeats.
+
+        let mut wko = Workout::new();
+        let file = File::open("tests/trainingpeaks_export.fit").unwrap();
+        let mut reader = BufReader::new(file);
+        fit_file::read(&mut reader, callback, &mut wko).unwrap();
+
+        let expected = Workout{
+             workout_message: Some(fit_file::FitWorkoutMsg {
+                 message_index: None,
+                 sport: Some(fit_file::FIT_SPORT_CYCLING),
+                 capabilities: None,
+                 num_valid_steps: Some(6),
+                 workout_name: Some("Test #1".into()),
+                 sub_sport: None,
+                 pool_length: None,
+                 pool_length_unit: None,
+             }),
+             steps: vec![
+                 FitWorkoutStepMsg {
+                     message_index: 0,
+                     step_name: Some("Warm up".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_OPEN),
+                     duration_value: Some(u32::MAX),
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_POWER),
+                     target_value: Some(0),
+                     custom_target_low: Some(1100), // 100W
+                     custom_target_high: Some(1125), // 125W
+                     intensity: Some(fit_file::INTENSITY_WARM_UP),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: Some(u8::MAX),
+                     secondary_target_value: Some(u32::MAX),
+                     secondary_custom_target_low: Some(u32::MAX),
+                     secondary_custom_target_high: Some(u32::MAX),
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 1,
+                     step_name: Some("Hard".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_TIME),
+                     duration_value: Some(360000), // 6m
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_POWER),
+                     target_value: Some(0), // Custom
+                     custom_target_low: Some(1212), // 212W
+                     custom_target_high: Some(1238), // 238W
+                     intensity: Some(fit_file::INTENSITY_ACTIVE),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: Some(fit_file::WORKOUT_STEP_TARGET_CADENCE),
+                     secondary_target_value: Some(0),
+                     secondary_custom_target_low: Some(95),
+                     secondary_custom_target_high: Some(105),
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 2,
+                     step_name: Some("Easy".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_TIME),
+                     duration_value: Some(180000), // 3m
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_POWER),
+                     target_value: Some(0),
+                     custom_target_low: Some(1125), // 125W
+                     custom_target_high: Some(1150), // 150W
+                     intensity: Some(fit_file::INTENSITY_REST),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: Some(u8::MAX),
+                     secondary_target_value: Some(u32::MAX),
+                     secondary_custom_target_low: Some(u32::MAX),
+                     secondary_custom_target_high: Some(u32::MAX),
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 3,
+                     step_name: Some("".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_REPEAT_UNTIL_STEPS_COMPLETE),
+                     duration_value: Some(1), // step with message index 1
+                     target_type: Some(u8::MAX),
+                     target_value: Some(4), // 4 repetitions
+                     custom_target_low: Some(u32::MAX),
+                     custom_target_high: Some(u32::MAX),
+                     intensity: Some(u8::MAX),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: Some(u8::MAX),
+                     secondary_target_value: Some(u32::MAX),
+                     secondary_custom_target_low: Some(u32::MAX),
+                     secondary_custom_target_high: Some(u32::MAX),
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 4,
+                     step_name: Some("Cool Down".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_TIME),
+                     duration_value: Some(600000), // 10m
+                     target_type: Some(fit_file::WORKOUT_STEP_TARGET_POWER),
+                     target_value: Some(0), // custom
+                     custom_target_low: Some(1100), // 100W
+                     custom_target_high: Some(1125), // 125W
+                     intensity: Some(fit_file::INTENSITY_COOL_DOWN),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: Some(u8::MAX),
+                     secondary_target_value: Some(u32::MAX),
+                     secondary_custom_target_low: Some(u32::MAX),
+                     secondary_custom_target_high: Some(u32::MAX),
+                 },
+                 FitWorkoutStepMsg {
+                     message_index: 5,
+                     step_name: Some("".into()),
+                     duration_type: Some(fit_file::WORKOUT_STEP_DURATION_OPEN),
+                     duration_value: Some(u32::MAX),
+                     target_type: Some(u8::MAX),
+                     target_value: Some(u32::MAX),
+                     custom_target_low: Some(u32::MAX),
+                     custom_target_high: Some(u32::MAX),
+                     intensity: Some(fit_file::INTENSITY_COOL_DOWN),
+                     notes: None,
+                     equipment: None,
+                     secondary_target_type: Some(u8::MAX),
+                     secondary_target_value: Some(u32::MAX),
+                     secondary_custom_target_low: Some(u32::MAX),
+                     secondary_custom_target_high: Some(u32::MAX),
+                 },
+             ],
+        };
+
+        assert_eq!(wko.workout_message, expected.workout_message);
+        for (i, expected_step) in expected.steps.iter().enumerate() {
+            let wko_step = wko.steps.get(i).unwrap();
+            assert_eq!(wko_step, expected_step);
+        }
+        assert_eq!(wko.steps.len(), expected.steps.len());
     }
 }
