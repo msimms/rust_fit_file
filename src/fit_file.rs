@@ -226,6 +226,90 @@ pub const FIT_SPORT_FLOOR_CLIMBING: u8 = 48;
 pub const FIT_SPORT_DIVING: u8 = 53;
 pub const FIT_SPORT_ALL: u8 = 254;
 
+// Sub-sport enumeration
+pub const FIT_SUB_SPORT_GENERIC : u8 = 0;
+pub const FIT_SUB_SPORT_TREADMILL : u8 = 1;
+pub const FIT_SUB_SPORT_STREET : u8 = 2;
+pub const FIT_SUB_SPORT_TRAIL : u8 = 3;
+pub const FIT_SUB_SPORT_TRACK : u8 = 4;
+pub const FIT_SUB_SPORT_SPIN : u8 = 5;
+pub const FIT_SUB_SPORT_INDOOR_CYCLING : u8 = 6;
+pub const FIT_SUB_SPORT_ROAD : u8 = 7;
+pub const FIT_SUB_SPORT_MOUNTAIN : u8 = 8;
+pub const FIT_SUB_SPORT_DOWNHILL : u8 = 9;
+pub const FIT_SUB_SPORT_RECUMBENT : u8 = 10;
+pub const FIT_SUB_SPORT_CYCLOCROSS : u8 = 11;
+pub const FIT_SUB_SPORT_HAND_CYCLING : u8 = 12;
+pub const FIT_SUB_SPORT_TRACK_CYCLING : u8 = 13;
+pub const FIT_SUB_SPORT_INDOOR_ROWING : u8 = 14;
+pub const FIT_SUB_SPORT_ELLIPTICAL : u8 = 15;
+pub const FIT_SUB_SPORT_STAIR_CLIMBING : u8 = 16;
+pub const FIT_SUB_SPORT_LAP_SWIMMING : u8 = 17;
+pub const FIT_SUB_SPORT_OPEN_WATER : u8 = 18;
+pub const FIT_SUB_SPORT_FLEXIBILITY_TRAINING : u8 = 19;
+pub const FIT_SUB_SPORT_STRENGTH_TRAINING : u8 = 20;
+pub const FIT_SUB_SPORT_WARM_UP : u8 = 21;
+pub const FIT_SUB_SPORT_MATCH : u8 = 22;
+pub const FIT_SUB_SPORT_EXERCISE : u8 = 23;
+pub const FIT_SUB_SPORT_CHALLENGE : u8 = 24;
+pub const FIT_SUB_SPORT_INDOOR_SKIING : u8 = 25;
+pub const FIT_SUB_SPORT_CARDIO_TRAINING : u8 = 26;
+pub const FIT_SUB_SPORT_INDOOR_WALKING : u8 = 27;
+pub const FIT_SUB_SPORT_E_BIKE_FITNESS : u8 = 28;
+pub const FIT_SUB_SPORT_BMX : u8 = 29;
+pub const FIT_SUB_SPORT_CASUAL_WALKING : u8 = 30;
+pub const FIT_SUB_SPORT_SPEED_WALKING : u8 = 31;
+pub const FIT_SUB_SPORT_BIKE_TO_RUN_TRANSITION : u8 = 32;
+pub const FIT_SUB_SPORT_RUN_TO_BIKE_TRANSITION : u8 = 33;
+pub const FIT_SUB_SPORT_SWIM_TO_BIKE_TRANSITION : u8 = 34;
+pub const FIT_SUB_SPORT_ATV : u8 = 35;
+pub const FIT_SUB_SPORT_MOTOCROSS : u8 = 36;
+pub const FIT_SUB_SPORT_BACKCOUNTRY : u8 = 37;
+pub const FIT_SUB_SPORT_RESORT : u8 = 38;
+pub const FIT_SUB_SPORT_RC_DRONE : u8 = 39;
+pub const FIT_SUB_SPORT_WINGSUIT : u8 = 40;
+pub const FIT_SUB_SPORT_WHITEWATER : u8 = 41;
+pub const FIT_SUB_SPORT_SKATE_SKIING : u8 = 42;
+pub const FIT_SUB_SPORT_YOGA : u8 = 43;
+pub const FIT_SUB_SPORT_PILATES : u8 = 44;
+pub const FIT_SUB_SPORT_INDOOR_RUNNING : u8 = 45;
+pub const FIT_SUB_SPORT_GRAVEL_CYCLING : u8 = 46;
+pub const FIT_SUB_SPORT_E_BIKE_MOUNTAIN : u8 = 47;
+pub const FIT_SUB_SPORT_COMMUTING : u8 = 48;
+pub const FIT_SUB_SPORT_MIXED_SURFACE : u8 = 49;
+pub const FIT_SUB_SPORT_NAVIGATE : u8 = 50;
+pub const FIT_SUB_SPORT_TRACK_ME : u8 = 51;
+pub const FIT_SUB_SPORT_MAP : u8 = 52;
+pub const FIT_SUB_SPORT_SINGLE_GAS_DIVING : u8 = 53;
+pub const FIT_SUB_SPORT_MULTI_GAS_DIVING : u8 = 54;
+pub const FIT_SUB_SPORT_GAUGE_DIVING : u8 = 55;
+pub const FIT_SUB_SPORT_APNEA_DIVING : u8 = 56;
+pub const FIT_SUB_SPORT_APNEA_HUNTING : u8 = 57;
+pub const FIT_SUB_SPORT_VIRTUAL_ACTIVITY : u8 = 58;
+pub const FIT_SUB_SPORT_OBSTACLE : u8 = 59;
+pub const FIT_SUB_SPORT_BREATHING : u8 = 62;
+pub const FIT_SUB_SPORT_SAIL_RACE : u8 = 65;
+pub const FIT_SUB_SPORT_ULTRA : u8 = 67;
+pub const FIT_SUB_SPORT_INDOOR_CLIMBING : u8 = 68;
+pub const FIT_SUB_SPORT_BOULDERING : u8 = 69;
+pub const FIT_SUB_SPORT_HIIT : u8 = 70;
+pub const FIT_SUB_SPORT_AMRAP : u8 = 73;
+pub const FIT_SUB_SPORT_EMOM : u8 = 74;
+pub const FIT_SUB_SPORT_TABATA : u8 = 75;
+pub const FIT_SUB_SPORT_PICKLEBALL : u8 = 84;
+pub const FIT_SUB_SPORT_PADEL : u8 = 85;
+pub const FIT_SUB_SPORT_FLY_CANOPY : u8 = 110;
+pub const FIT_SUB_SPORT_FLY_PARAGLIDE : u8 = 111;
+pub const FIT_SUB_SPORT_FLY_PARAMOTOR : u8 = 112;
+pub const FIT_SUB_SPORT_FLY_PRESSURIZED : u8 = 113;
+pub const FIT_SUB_SPORT_FLY_NAVIGATE : u8 = 114;
+pub const FIT_SUB_SPORT_FLY_TIMER : u8 = 115;
+pub const FIT_SUB_SPORT_FLY_ALTIMETER : u8 = 116;
+pub const FIT_SUB_SPORT_FLY_WX : u8 = 117;
+pub const FIT_SUB_SPORT_FLY_VFR : u8 = 118;
+pub const FIT_SUB_SPORT_FLY_IFR : u8 = 119;
+pub const FIT_SUB_SPORT_ALL : u8 = 254;
+
 // Swim stroke enumeration.
 pub const FIT_ENUM_INVALID: u8 = 0xff;
 pub const FIT_STROKE_TYPE_INVALID: u8 = FIT_ENUM_INVALID;
@@ -266,6 +350,94 @@ pub const FIT_BASE_TYPE_BYTE: u8 = 0x0D;
 pub const FIT_BASE_TYPE_SINT64: u8 = 0x8E;
 pub const FIT_BASE_TYPE_UINT64: u8 = 0x8F;
 pub const FIT_BASE_TYPE_UINT64Z: u8 = 0x90;
+
+pub const WORKOUT_CAPABILITIES_INTERVAL : u32 = 0x00000001;
+pub const WORKOUT_CAPABILITIES_CUSTOM : u32 = 0x00000002;
+pub const WORKOUT_CAPABILITIES_FITNESS_EQUIPMENT : u32 = 0x00000004;
+pub const WORKOUT_CAPABILITIES_FIRSTBEAT : u32 = 0x00000008;
+pub const WORKOUT_CAPABILITIES_NEW_LEAF : u32 = 0x00000010;
+pub const WORKOUT_CAPABILITIES_TCX : u32 = 0x00000020;
+/// Speed source required for workout step.
+pub const WORKOUT_CAPABILITIES_SPEED : u32 = 0x00000080;
+/// Heart rate source required for workout step.
+pub const WORKOUT_CAPABILITIES_HEART_RATE : u32 = 0x00000100;
+/// Distance source required for workout step.
+pub const WORKOUT_CAPABILITIES_DISTANCE : u32 = 0x00000200;
+/// Distance source required for workout step.
+pub const WORKOUT_CAPABILITIES_CADENCE : u32 = 0x00000400;
+/// Power source required for workout step.
+pub const WORKOUT_CAPABILITIES_POWER : u32 = 0x00000800;
+/// Grade source required for workout step.
+pub const WORKOUT_CAPABILITIES_GRADE : u32 = 0x00001000;
+/// Resistance source required for workout step.
+pub const WORKOUT_CAPABILITIES_RESISTANCE : u32 = 0x00002000;
+pub const WORKOUT_CAPABILITIES_PROTECTED : u32 = 0x00004000;
+
+pub const WORKOUT_EQUIPMENT_NONE : u8 = 0;
+pub const WORKOUT_EQUIPMENT_SWIM_FINS : u8 = 1;
+pub const WORKOUT_EQUIPMENT_SWIM_KICKBOARD : u8 = 2;
+pub const WORKOUT_EQUIPMENT_SWIM_PADDLES : u8 = 3;
+pub const WORKOUT_EQUIPMENT_PULL_BUOY : u8 = 4;
+pub const WORKOUT_EQUIPMENT_SWIM_SNORKEL : u8 = 5;
+
+pub const WORKOUT_STEP_DURATION_TIME : u8 = 0;
+pub const WORKOUT_STEP_DURATION_DISTANCE : u8 = 1;
+pub const WORKOUT_STEP_DURATION_HEART_RATE_LESS_THAN : u8 = 2;
+pub const WORKOUT_STEP_DURATION_HEART_RATE_GREATER_THAN : u8 = 3;
+pub const WORKOUT_STEP_DURATION_CALORIES : u8 = 4;
+pub const WORKOUT_STEP_DURATION_OPEN : u8 = 5;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_STEPS_COMPLETE : u8 = 6;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_TIME : u8 = 7;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_DISTANCE : u8 = 8;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_CALORIES : u8 = 9;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_HEART_RATE_LESS_THAN : u8 = 10;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_HEART_RATE_GREATER_THAN : u8 = 11;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_POWER_LESS_THAN : u8 = 12;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_POWER_GREATER_THAN : u8 =  13;
+pub const WORKOUT_STEP_DURATION_POWER_LESS_THAN : u8 = 14;
+pub const WORKOUT_STEP_DURATION_POWER_GREATER_THAN : u8 = 15;
+pub const WORKOUT_STEP_DURATION_TRAINING_PEAKS_TSS : u8 = 16;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_POWER_LAST_LAP_LESS_THAN : u8 = 17;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_MAX_POWER_LAST_LAP_LESS_THAN : u8 = 18;
+pub const WORKOUT_STEP_DURATION_POWER3S_LESS_THAN : u8 = 19;
+pub const WORKOUT_STEP_DURATION_POWER10S_LESS_THAN : u8 = 20;
+pub const WORKOUT_STEP_DURATION_POWER30S_LESS_THAN : u8 = 21;
+pub const WORKOUT_STEP_DURATION_POWER3S_GREATER_THAN : u8 = 22;
+pub const WORKOUT_STEP_DURATION_POWER10S_GREATER_THAN : u8 = 23;
+pub const WORKOUT_STEP_DURATION_POWER30S_GREATER_THAN : u8 = 24;
+pub const WORKOUT_STEP_DURATION_POWER_LAP_LESS_THAN : u8 = 25;
+pub const WORKOUT_STEP_DURATION_POWER_LAP_GREATER_THAN : u8 = 26;
+pub const WORKOUT_STEP_DURATION_REPEAT_UNTIL_TRAINING_PEAKS_TSS : u8 = 27;
+pub const WORKOUT_STEP_DURATION_REPETITION_TIME : u8 = 28;
+pub const WORKOUT_STEP_DURATION_REPS : u8 = 29;
+pub const WORKOUT_STEP_DURATION_TIME_ONLY : u8 = 31;
+
+pub const WORKOUT_STEP_TARGET_SPEED : u8 = 0;
+pub const WORKOUT_STEP_TARGET_HEART_RATE : u8 = 1;
+pub const WORKOUT_STEP_TARGET_OPEN : u8 = 2;
+pub const WORKOUT_STEP_TARGET_CADENCE : u8 = 3;
+pub const WORKOUT_STEP_TARGET_POWER : u8 = 4;
+pub const WORKOUT_STEP_TARGET_GRADE : u8 = 5;
+pub const WORKOUT_STEP_TARGET_RESISTANCE : u8 = 6;
+pub const WORKOUT_STEP_TARGET_POWER_3S : u8 = 7;
+pub const WORKOUT_STEP_TARGET_POWER_10S : u8 = 8;
+pub const WORKOUT_STEP_TARGET_POWER_30S : u8 = 9;
+pub const WORKOUT_STEP_TARGET_POWER_LAP : u8 = 10;
+pub const WORKOUT_STEP_TARGET_SWIM_STROKE : u8 = 11;
+pub const WORKOUT_STEP_TARGET_SPEED_LAP : u8 = 12;
+pub const WORKOUT_STEP_TARGET_HEART_RATE_LAP : u8 = 13;
+
+pub const INTENSITY_ACTIVE : u8 = 0;
+pub const INTENSITY_REST : u8 = 1;
+pub const INTENSITY_WARM_UP : u8 = 2;
+pub const INTENSITY_COOL_DOWN : u8 = 3;
+pub const INTENSITY_RECOVERY : u8 = 4;
+pub const INTENSITY_INTERVAL : u8 = 5;
+pub const INTENSITY_OTHER : u8 = 6;
+
+pub const DISPLAY_MEASURE_METRIC : u8 = 0;
+pub const DISPLAY_MEASURE_STATUTE : u8 = 1;
+pub const DISPLAY_MEASURE_NAUTICAL : u8 = 2;
 
 type Callback<T> = fn(timestamp: u32, global_message_num: u16, local_message_type: u8, message_index: u16, data: Vec<FitFieldValue>, context: &mut T);
 
@@ -476,7 +648,7 @@ fn byte_array_to_string(bytes: Vec<u8>, num_bytes: usize) -> String {
     for i in 0..num_bytes {
         result.push(bytes[i] as char);
     }
-    result
+    result.trim_end_matches('\0').to_string()
 }
 
 /// Utility function for converting a byte array to an unsigned int of the given size.
@@ -1621,6 +1793,144 @@ impl FitEventMsg {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct FitWorkoutMsg {
+    pub message_index: Option<u16>,
+    /// enum with values defined in constants `FIT_SPORT_*`
+    pub sport: Option<u8>,
+    /// bitmask with flags defined in constants `WORKOUT_CAPABILITIES_*`
+    pub capabilities: Option<u32>,
+    /// number of workout steps included in the file
+    pub num_valid_steps: Option<u16>,
+    /// nul-terminated string with the workout name
+    pub workout_name: Option<String>,
+    /// enum with values defined in constants `FIT_SUB_SPORT_*`
+    pub sub_sport: Option<u8>,
+    /// pool length measured in meters
+    pub pool_length: Option<u16>,
+    /// pool length display unit
+    /// enum with values defined in constants `DISPLAY_MEASURE_*`
+    pub pool_length_unit: Option<u8>,
+}
+
+impl FitWorkoutMsg {
+    pub fn new(fields: Vec<FitFieldValue>) -> FitWorkoutMsg {
+        let mut msg = FitWorkoutMsg {
+            message_index: None,
+            sport: None,
+            num_valid_steps: None,
+            workout_name: None,
+            sub_sport: None,
+            capabilities: None,
+            pool_length: None,
+            pool_length_unit: None,
+        };
+
+        for field in fields.iter() {
+            if !field.is_dev_field {
+                match field.field_def {
+                    4 => msg.sport = Some(field.get_u8()),
+                    5 => msg.capabilities = Some(field.get_u32()),
+                    6 => msg.num_valid_steps = Some(field.get_u16()),
+                    8 => msg.workout_name = Some(field.value_string.clone()),
+                    11 => msg.sub_sport = Some(field.get_u8()),
+                    14 => msg.pool_length = Some(field.get_u16()),
+                    15 => msg.pool_length_unit = Some(field.get_u8()),
+                    254 => msg.message_index = Some(field.get_u16()),
+                    _ => {}
+                }
+            }
+        }
+
+        msg
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FitWorkoutStepMsg {
+    pub message_index: u16,
+    pub step_name: Option<String>,
+    /// enum values defined in constants `WORKOUT_STEP_DURATION_*`
+    pub duration_type: Option<u8>,
+    pub duration_value: Option<u32>,
+    /// enum values defined in constants `WORKOUT_STEP_TARGET_*`
+    pub target_type: Option<u8>,
+    /// If `target_type` indicates speed, heart rate, cadence or power, then this indicates zones
+    /// with value >0  or `target_value` = 0 for custom values defined with `custom_target_low` and
+    /// `custom_target_high`
+    pub target_value: Option<u32>,
+    /// If `target_type` indicates power, then values 0-1000 are to be interpreted as percentage of
+    /// user FTP (0%-1000%), values greater than 1000 are to be interpreted as 
+    /// (1000 + absolute power). E.g. 1250 would be absolute power of 250W.
+    ///
+    /// If `target_type` indicates heart rate, then values 0-100 are to be interpreted as 
+    /// percentage of use max heart rate (0%-100%), values greater than 100 are to be interpreted
+    /// as (100 + absolute heart rate). E.g. 250 would be absolute HR of 150BPM.
+    pub custom_target_low: Option<u32>,
+    /// See `custom_target_low` for more details of the content
+    pub custom_target_high: Option<u32>,
+    /// enum values defined in constants `INTENSITY_*`
+    pub intensity: Option<u8>,
+    pub notes: Option<String>,
+    /// enum values defined in constants `WORKOUT_EQUIPMENT_*`
+    pub equipment: Option<u8>,
+    /// enum values defined in constants `WORKOUT_STEP_TARGET_*`
+    pub secondary_target_type: Option<u8>,
+    /// See `target_value` for more details of the content
+    pub secondary_target_value: Option<u32>,
+    /// See `custom_target_low` for more details for the content
+    pub secondary_custom_target_low: Option<u32>,
+    /// See `custom_target_low` for more details for the content
+    pub secondary_custom_target_high: Option<u32>,
+}
+
+impl FitWorkoutStepMsg {
+    pub fn new(message_index: u16, fields: Vec<FitFieldValue>) -> FitWorkoutStepMsg {
+        let mut msg = FitWorkoutStepMsg{
+            message_index,
+            step_name: None,
+            duration_type: None,
+            duration_value: None,
+            target_type: None,
+            target_value: None,
+            custom_target_low: None,
+            custom_target_high: None,
+            intensity: None,
+            notes: None,
+            equipment: None,
+            secondary_target_type: None,
+            secondary_target_value: None,
+            secondary_custom_target_low: None,
+            secondary_custom_target_high: None,
+        };
+
+        for field in fields {
+            if !field.is_dev_field {
+                match field.field_def {
+                    0 => msg.step_name = Some(field.value_string),
+                    1 => msg.duration_type = Some(field.get_u8()),
+                    2 => msg.duration_value = Some(field.get_u32()),
+                    3 => msg.target_type = Some(field.get_u8()),
+                    4 => msg.target_value = Some(field.get_u32()),
+                    5 => msg.custom_target_low = Some(field.get_u32()),
+                    6 => msg.custom_target_high = Some(field.get_u32()),
+                    7 => msg.intensity = Some(field.get_u8()),
+                    8 => msg.notes = Some(field.value_string),
+                    9 => msg.equipment = Some(field.get_u8()),
+                    19 => msg.secondary_target_type = Some(field.get_u8()),
+                    20 => msg.secondary_target_value = Some(field.get_u32()),
+                    21 => msg.secondary_custom_target_low = Some(field.get_u32()),
+                    22 => msg.secondary_custom_target_high = Some(field.get_u32()),
+                    _ => {}
+                }
+            }
+        }
+
+        msg
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum FieldType {
     FieldTypeNotSet, // Value not set
     FieldTypeUInt, // Value is an unsigned integer
@@ -1630,6 +1940,7 @@ pub enum FieldType {
     FieldTypeStr // Value is a tring
 }
 
+#[derive(Clone, Debug)]
 pub struct FitFieldValue {
     pub field_def: u8, // From the message definition
     pub base_type: u8, // Base type, from the SDK
@@ -1845,8 +2156,6 @@ impl FitRecord {
 
     /// Assumes the buffer is pointing to the beginning of the definition message, reads the message, and updates the field definitions.
     fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState) -> Result<()> {
-        println!("Definition Msg");
-
         // Local message type.
         let local_msg_type = self.header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
 
@@ -1908,7 +2217,6 @@ impl FitRecord {
 
     /// Assumes the buffer is pointing to the beginning of the data message, reads the message.
     fn read_data_message<C, R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState, callback: Callback<C>, context: &mut C) -> Result<()> {
-        println!("Data Msg");
 
         // Local message type. The local message type is stored differently for compressed data headers.
         let local_msg_type;
