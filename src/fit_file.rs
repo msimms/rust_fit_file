@@ -2156,8 +2156,6 @@ impl FitRecord {
 
     /// Assumes the buffer is pointing to the beginning of the definition message, reads the message, and updates the field definitions.
     fn read_definition_message<R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState) -> Result<()> {
-        println!("Definition Msg");
-
         // Local message type.
         let local_msg_type = self.header_byte & RECORD_HDR_LOCAL_MSG_TYPE;
 
@@ -2219,7 +2217,6 @@ impl FitRecord {
 
     /// Assumes the buffer is pointing to the beginning of the data message, reads the message.
     fn read_data_message<C, R: Read>(&mut self, reader: &mut BufReader<R>, state: &mut FitState, callback: Callback<C>, context: &mut C) -> Result<()> {
-        println!("Data Msg");
 
         // Local message type. The local message type is stored differently for compressed data headers.
         let local_msg_type;
